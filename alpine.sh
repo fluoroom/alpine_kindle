@@ -1,11 +1,18 @@
 #!/bin/sh
 
+# Check for --gui flag
+AUTO_GUI=false
+if [ "$1" = "--gui" ]; then
+    AUTO_GUI=true
+    echo "GUI mode enabled - will start GUI after entering Alpine"
+fi
+
 # Determine the correct Alpine image file to use
-ALPINE_IMAGE=""
-if [ -f "/mnt/us/alpine.ext4" ]; then
-	ALPINE_IMAGE="/mnt/us/alpine.ext4"
-elif [ -f "/mnt/us/alpine.ext3" ]; then
-	ALPINE_IMAGE="/mnt/us/alpine.ext3"
+ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
+if [ -f "/mnt/us/alpine/alpine.ext4" ]; then
+	ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
+elif [ -f "/mnt/us/alpine/alpine.ext3" ]; then
+	ALPINE_IMAGE="/mnt/us/alpine/alpine.ext3"
 elif [ -f "/mnt/base-us/alpine/alpine.ext4" ]; then
 	ALPINE_IMAGE="/mnt/base-us/alpine/alpine.ext4"
 else
@@ -223,8 +230,16 @@ else
 	chmod a+w /dev/shm 2>/dev/null || true
 fi
 
-echo "You're now being dropped into Alpine's shell"
-chroot /tmp/alpine /bin/sh
+
+if [ "$AUTO_GUI" = "true" ]; then
+    echo "Starting Alpine with GUI..."
+    chroot /tmp/alpine /bin/sh -c "gui"
+    echo "GUI session ended"
+else
+    echo "You're now being dropped into Alpine's shell"
+    chroot /tmp/alpine /bin/sh
+    echo "Exited Alpine's shell"
+fi
 
 if [ $ALREADYMOUNTED = "yes" ] ; then
 	echo "Umount is being skipped, as the rootfs was mounted already. You're now at your kindle's shell again."

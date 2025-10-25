@@ -25,6 +25,11 @@
                     "exitmenu": false
                 },
                 {
+                    "name": "Start GUI",
+                    "action": "sh bin/kterm_run.sh gui.sh",
+                    "exitmenu": false
+                },
+                {
                     "name": "Delete Alpine Linux",
                     "action": "sh bin/kterm_run.sh delete.sh",
                     "exitmenu": false

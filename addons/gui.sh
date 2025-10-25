@@ -6,8 +6,6 @@ if [ "$(id -u)" != "0" ]; then
   exit 1
 fi
 
-# Install GUI packages
-/usr/local/bin/gui_install
 
 # Make dang sure Xephyr isn't already running
 if [ "$(pgrep Xephyr)" ] ; then

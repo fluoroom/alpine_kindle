@@ -158,10 +158,11 @@ else
 		START_SECTOR=""
 		if command -v fdisk >/dev/null 2>&1; then
 			# fdisk output varies; try to find the "Start" of first partition
-			START_SECTOR=$(fdisk -l "$ALPINE_IMAGE" 2>/dev/null | awk '/^'"$ALPINE_IMAGE"'/ {next} /[0-9]+.*Linux/ {print $2; exit}')
-			# fallback: look for any partition line with "Start"
+			# Use a different approach to avoid awk pattern issues with paths containing slashes
+			START_SECTOR=$(fdisk -l "$ALPINE_IMAGE" 2>/dev/null | awk 'BEGIN{found=0} /^Device.*Start/ {found=1; next} found && /^[^[:space:]]/ && /[0-9]+/ {print $2; exit}')
+			# fallback: look for any partition line with numeric start
 			if [ -z "$START_SECTOR" ]; then
-				START_SECTOR=$(fdisk -l "$ALPINE_IMAGE" 2>/dev/null | awk '/^'"$ALPINE_IMAGE"'/ {next} NR && /Start/ {print $2; exit}')
+				START_SECTOR=$(fdisk -l "$ALPINE_IMAGE" 2>/dev/null | awk '/^[^[:space:]].*[0-9]+.*[0-9]+.*[0-9]+/ {print $2; exit}')
 			fi
 		fi
 
@@ -208,10 +209,53 @@ else
 		# extra diagnostics for user
 		echo ""
 		echo "Detailed diagnostics (if available):"
+		
+		# Check if the image file is accessible and what type it is
+		if [ -f "$ALPINE_IMAGE" ]; then
+			echo "Image file exists and is accessible: $ALPINE_IMAGE"
+			echo "Image file size: $(ls -lh "$ALPINE_IMAGE" 2>/dev/null | awk '{print $5}' || echo 'unknown')"
+			if command -v file >/dev/null 2>&1; then
+				echo "File type: $(file "$ALPINE_IMAGE" 2>/dev/null || echo 'unknown')"
+			fi
+			
+			# Try to check filesystem integrity if fsck is available
+			if command -v fsck.ext4 >/dev/null 2>&1; then
+				echo "Checking filesystem integrity..."
+				if fsck.ext4 -n "$ALPINE_IMAGE" >/dev/null 2>&1; then
+					echo "Filesystem check: PASSED"
+				else
+					echo "Filesystem check: FAILED (filesystem may be corrupted)"
+				fi
+			fi
+		else
+			echo "ERROR: Image file not accessible: $ALPINE_IMAGE"
+		fi
+		
+		# Check available loop devices
 		if command -v losetup >/dev/null 2>&1; then
+			echo ""
 			echo "losetup -a output:"
 			losetup -a 2>/dev/null || true
+			echo "Available loop devices:"
+			ls -la /dev/loop* 2>/dev/null || echo "No loop devices found in /dev/"
 		fi
+		
+		# Check if we can try manual mount as a test
+		echo ""
+		echo "Testing direct mount capability..."
+		if command -v mount >/dev/null 2>&1; then
+			# Try a quick test mount in read-only mode to see what the error is
+			TEST_DIR="/tmp/alpine_test_$$"
+			mkdir -p "$TEST_DIR" 2>/dev/null
+			if mount -o loop,ro -t ext4 "$ALPINE_IMAGE" "$TEST_DIR" 2>&1; then
+				echo "Direct mount test: SUCCESS (unmounting now)"
+				umount "$TEST_DIR" 2>/dev/null || true
+			else
+				echo "Direct mount test: FAILED"
+			fi
+			rmdir "$TEST_DIR" 2>/dev/null || true
+		fi
+		
 		if command -v dmesg >/dev/null 2>&1; then
 			echo ""
 			echo "dmesg tail:"

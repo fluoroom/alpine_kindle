@@ -19,17 +19,18 @@ PACKAGES="
     sudo
     bash
     nano
-    firefox-esr
     ttf-dejavu
     onboard
+    dillo
+    vimb
 "
 
-echo "Installing Fluxbox desktop environment..."
+echo "Installing XFCE desktop environment..."
 echo "Package list: $PACKAGES"
 
 # Install packages (apk will automatically skip already installed ones)
 if apk add --no-cache $PACKAGES; then
-    echo "✓ Successfully installed Fluxbox desktop packages"
+    echo "✓ Successfully installed XFCE desktop packages"
 else
     echo "✗ Some packages failed to install. Trying individual installation..."
     for pkg in $PACKAGES; do

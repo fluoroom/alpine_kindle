@@ -3,7 +3,7 @@ name: Create Alpine rootfs images
 on:
   push:
     branches:
-      - senpai
+      - pw6
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:

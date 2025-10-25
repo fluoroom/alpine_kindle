@@ -11,6 +11,8 @@ MOUNT_POINT="/mnt/alpine"
 IMAGE="./alpine.ext4"
 IMAGESIZE=2048 # Megabytes
 
+BUILDGUI=true
+
 if [ -n "$1" ]; then
   ARCH="$1"
 else
@@ -38,22 +40,29 @@ tar -xzvf minirootfs.tar.gz -C "$MOUNT_POINT"
 
 # Preconfig the image
 echo "kindle" > "$MOUNT_POINT/etc/hostname"
-echo "nameserver 8.8.8.8" > "$MOUNT_POINT/etc/resolv.conf"
+echo "nameserver 1.1.1.1" > "$MOUNT_POINT/etc/resolv.conf"
 mkdir ${MOUNT_POINT}/run/dbus
 
-# check if the env var RUN_CUSTOMIZE exists
-if [ -n "$RUN_CUSTOMIZE" ]; then
+#Copy the GUI installer
+cp ./addons/gui_install.sh "$MOUNT_POINT/usr/local/bin/gui_install"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_install"
+if [ "$BUILDGUI" = true ] ; then
+    chroot "$MOUNT_POINT/usr/local/bin/gui_install"
+fi
+
+# check if the customize_image.sh exists
+if [ -f "./customize_image.sh" ]; then
   # Copy the customize script
-  cp ./customize.sh "$MOUNT_POINT/root/customize.sh"
-  chmod +x "$MOUNT_POINT/root/customize.sh"
+  cp ./customize_image.sh "$MOUNT_POINT/root/customize_image.sh"
+  chmod +x "$MOUNT_POINT/root/customize_image.sh"
 
   # Copy qemu-[arch] binaries
   cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"
 
   # Run the customize script
-  chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /root/customize.sh
+  chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /root/customize_image.sh
 
-  rm /root/customize.sh
+  rm "$MOUNT_POINT/root/customize_image.sh"
   rm /usr/bin/qemu-arm-static
 fi
 

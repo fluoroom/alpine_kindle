@@ -18,7 +18,7 @@ cd /mnt/base-us
 mkdir alpine
 cd alpine
 
-NIGHTLY_LINK="https://nightly.link/ohaiibuzzle/alpine_kindle/workflows/create-rootfs.yaml/senpai/alpine-rootfs-${IMAGE_ARCH}.zip"
+NIGHTLY_LINK="https://nightly.link/fluoroom/alpine_kindle/workflows/create-rootfs.yaml/pw6/alpine-rootfs-${IMAGE_ARCH}.zip"
 curl -L -o "alpine.zip" "$NIGHTLY_LINK"
 
 unzip alpine.zip

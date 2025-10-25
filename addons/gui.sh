@@ -6,19 +6,8 @@ if [ "$(id -u)" != "0" ]; then
   exit 1
 fi
 
-# Install required packages if they are not already installed
-if [ -z "$(which Xephyr)" ] || [ -z "$(which xwininfo)" ]; then
-    echo "Installing required packages..."
-    apk add --no-cache xorg-server-xephyr xwininfo onboard dbus-x11 sudo mate-desktop-environment xfce4-terminal adwaita-icon-theme faenza-icon-theme font-dejavu
-fi
-
-# Create a new user 'alpine' if it doesn't already exist
-if ! id -u alpine >/dev/null 2>&1; then
-    adduser -D alpine
-    echo "alpine:alpine" | chpasswd
-    adduser alpine wheel
-    echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-fi
+# Install GUI packages
+/usr/local/bin/gui_install
 
 # Make dang sure Xephyr isn't already running
 if [ "$(pgrep Xephyr)" ] ; then

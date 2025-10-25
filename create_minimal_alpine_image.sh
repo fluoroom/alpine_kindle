@@ -46,6 +46,8 @@ mkdir ${MOUNT_POINT}/run/dbus
 #Copy the GUI installer
 cp ./addons/gui_install.sh "$MOUNT_POINT/usr/local/bin/gui_install"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install"
+
+#Build GUI now 
 if [ "$BUILDGUI" = true ] ; then
     chroot "$MOUNT_POINT/usr/local/bin/gui_install"
 fi

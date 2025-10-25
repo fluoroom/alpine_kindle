@@ -42,16 +42,20 @@ tar -xzvf minirootfs.tar.gz -C "$MOUNT_POINT"
 echo "kindle" > "$MOUNT_POINT/etc/hostname"
 echo "nameserver 1.1.1.1" > "$MOUNT_POINT/etc/resolv.conf"
 mkdir ${MOUNT_POINT}/run/dbus
+echo "Preconfig done."
 
 #Copy the GUI installer
 cp ./addons/gui_install.sh "$MOUNT_POINT/usr/local/bin/gui_install"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install"
+echo "Copied GUI installer to image."
 
 # Copy qemu-[arch] binaries
   cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"
+  echo "Copied qemu-arm-static to image."
 
 #Build GUI now 
 if [ "$BUILDGUI" = true ] ; then
+    echo "Starting GUI installation inside chroot..."
     chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /usr/local/bin/gui_install
 fi
 
@@ -60,17 +64,23 @@ if [ -f "./customize_image.sh" ]; then
   # Copy the customize script
   cp ./customize_image.sh "$MOUNT_POINT/root/customize_image.sh"
   chmod +x "$MOUNT_POINT/root/customize_image.sh"
+  echo "Copied customize_image.sh to image."
 
   # Run the customize script
+  echo "Starting customization inside chroot..."
   chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /root/customize_image.sh
+  echo "Customization done."
 
   rm "$MOUNT_POINT/root/customize_image.sh"
+  echo "Removed customize_image.sh from image."
   rm /usr/bin/qemu-arm-static
+  echo "Removed qemu-arm-static from host."
 fi
 
 # Copy the gui script
 cp ./addons/gui.sh "$MOUNT_POINT/usr/local/bin/gui"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui"
+echo "Copied gui script to image."
 
 # Unmount the image
 sync

@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Force update package lists
+echo "Updating package repositories..."
+apk update
+
 # Function to check if a package exists in repositories
 package_exists() {
     apk search -q "$1" | grep -q "^$1-[0-9]"

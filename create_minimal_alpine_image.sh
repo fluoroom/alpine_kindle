@@ -47,9 +47,12 @@ mkdir ${MOUNT_POINT}/run/dbus
 cp ./addons/gui_install.sh "$MOUNT_POINT/usr/local/bin/gui_install"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install"
 
+# Copy qemu-[arch] binaries
+  cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"
+
 #Build GUI now 
 if [ "$BUILDGUI" = true ] ; then
-    chroot "$MOUNT_POINT/usr/local/bin/gui_install"
+    chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /usr/local/bin/gui_install
 fi
 
 # check if the customize_image.sh exists
@@ -57,9 +60,6 @@ if [ -f "./customize_image.sh" ]; then
   # Copy the customize script
   cp ./customize_image.sh "$MOUNT_POINT/root/customize_image.sh"
   chmod +x "$MOUNT_POINT/root/customize_image.sh"
-
-  # Copy qemu-[arch] binaries
-  cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"
 
   # Run the customize script
   chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /root/customize_image.sh

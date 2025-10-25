@@ -6,7 +6,7 @@ apk update
 
 # Function to check if a package exists in repositories
 package_exists() {
-    apk search "$1"
+    apk search -x "$1" | grep -q "^$1-"
 }
 
 # Function to add package to list if it exists

@@ -21,6 +21,7 @@ PACKAGES="
     nano
     firefox-esr
     ttf-dejavu
+    onboard
 "
 
 echo "Installing Fluxbox desktop environment..."

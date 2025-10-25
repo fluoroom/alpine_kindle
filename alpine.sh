@@ -27,6 +27,50 @@ fi
 
 echo "Using Alpine image: $ALPINE_IMAGE"
 
+# Determine home.ext4 location (same directory as Alpine image)
+ALPINE_DIR="$(dirname "$ALPINE_IMAGE")"
+HOME_IMAGE="$ALPINE_DIR/home.ext4"
+
+# Check if home.ext4 exists, if not ask user to create it
+if [ ! -f "$HOME_IMAGE" ]; then
+	echo ""
+	echo "Home filesystem (home.ext4) not found at: $HOME_IMAGE"
+	printf "Do you want to create it? (y/n): "
+	read -r CREATE_HOME
+	
+	if [ "$CREATE_HOME" = "y" ] || [ "$CREATE_HOME" = "Y" ]; then
+		printf "Enter size for home filesystem in MB (default: 512): "
+		read -r HOME_SIZE
+		
+		# Default to 512MB if no input
+		if [ -z "$HOME_SIZE" ]; then
+			HOME_SIZE=512
+		fi
+		
+		# Validate input is a number
+		if ! echo "$HOME_SIZE" | grep -q '^[0-9][0-9]*$'; then
+			echo "ERROR: Size must be a positive number"
+			exit 1
+		fi
+		
+		echo "Creating home filesystem ($HOME_SIZE MB) at: $HOME_IMAGE"
+		dd if=/dev/zero of="$HOME_IMAGE" bs=1M count="$HOME_SIZE" 2>/dev/null
+		if ! mkfs.ext4 -F "$HOME_IMAGE" >/dev/null 2>&1; then
+			echo "ERROR: Failed to create home filesystem"
+			rm -f "$HOME_IMAGE"
+			exit 1
+		fi
+		# Optimize the filesystem for embedded use
+		tune2fs -i 0 -c 0 -O ^has_journal "$HOME_IMAGE" >/dev/null 2>&1
+		echo "Home filesystem created successfully"
+	else
+		echo "Continuing without home filesystem..."
+		HOME_IMAGE=""
+	fi
+else
+	echo "Using home filesystem: $HOME_IMAGE"
+fi
+
 ALREADYMOUNTED="no"
 if mount | grep -q "/tmp/alpine"; then
 	ALREADYMOUNTED="yes"
@@ -228,6 +272,20 @@ else
 	fi
 
 	chmod a+w /dev/shm 2>/dev/null || true
+
+	# Mount home.ext4 if available
+	if [ -n "$HOME_IMAGE" ] && [ -f "$HOME_IMAGE" ]; then
+		echo "Mounting home filesystem..."
+		mkdir -p /tmp/alpine/home
+		
+		# Try to mount the home filesystem
+		if ! mount -o loop,noatime -t ext4 "$HOME_IMAGE" /tmp/alpine/home 2>/dev/null; then
+			echo "WARNING: Failed to mount home filesystem at $HOME_IMAGE"
+			echo "Continuing without separate home filesystem..."
+		else
+			echo "Home filesystem mounted at /tmp/alpine/home"
+		fi
+	fi
 fi
 
 
@@ -261,6 +319,12 @@ else
 	echo "Unmounting Alpine rootfs"
 	# Get the loop device associated with /tmp/alpine before unmounting
 	LOOPDEV="$(mount | grep '/tmp/alpine ' | grep -o '/dev/loop[0-9]*' | head -1 || true)"
+
+	# Unmount home filesystem first if it's mounted
+	if mount | grep -q "/tmp/alpine/home"; then
+		echo "Unmounting home filesystem..."
+		umount /tmp/alpine/home || echo "Warning: Failed to unmount /tmp/alpine/home"
+	fi
 
 	# Unmount in reverse order with error checking
 	if mount | grep -q "/tmp/alpine/sys"; then

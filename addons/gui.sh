@@ -24,16 +24,17 @@ sleep 2
 su - alpine -c "
 export DISPLAY=:1
 
-if [ ! -f /home/alpine/.runonce ]; then
-    echo 'Running first-time setup...'
-    touch /home/alpine/.runonce
-    gsettings set org.mate.interface window-scaling-factor 2
-    gsettings set org.mate.interface window-scaling-factor-qt-sync true
+# MATE settings commented out for Phosh 
+# if [ ! -f /home/alpine/.runonce ]; then
+#     echo 'Running first-time setup...'
+#     touch /home/alpine/.runonce
+#     gsettings set org.mate.interface window-scaling-factor 2
+#     gsettings set org.mate.interface window-scaling-factor-qt-sync true
 
-    sleep 2
-fi
+#     sleep 2
+# fi
 
-dbus-run-session mate-session
+dbus-run-session phosh-session
 " > /dev/null 2>&1
 
 # Cleanup:

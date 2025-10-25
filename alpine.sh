@@ -114,8 +114,24 @@ else
 
 	# Prefer losetup if available
 	if command -v losetup >/dev/null 2>&1; then
-		# try to attach and let kernel create partition nodes (-P) if supported
+		# First try the standard approach
 		LOOP="$(losetup -f --show "$ALPINE_IMAGE" 2>/dev/null || true)"
+		
+		# If that failed, try to find an unused loop device manually
+		if [ -z "$LOOP" ]; then
+			echo "Standard loop device allocation failed, trying manual approach..."
+			for i in 1 8 9 10 11 12 13 14 15 16; do
+				if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
+					# This loop device exists and appears to be free
+					if losetup "/dev/loop$i" "$ALPINE_IMAGE" 2>/dev/null; then
+						LOOP="/dev/loop$i"
+						echo "Successfully allocated loop device: $LOOP"
+						break
+					fi
+				fi
+			done
+		fi
+		
 		if [ -n "$LOOP" ]; then
 			# If kernel created partition nodes, prefer first partition
 			if [ -e "${LOOP}p1" ]; then
@@ -172,7 +188,7 @@ else
 			START_SECTOR=$(parted -s "$ALPINE_IMAGE" unit s print 2>/dev/null | awk '/^ 1/ {gsub("s","",$2); print $2; exit}')
 		fi
 
-		if [ -n "$START_SECTOR" ]; then
+		if [ -n "$START_SECTOR" ] && echo "$START_SECTOR" | grep -q '^[0-9][0-9]*$'; then
 			OFFSET=$((START_SECTOR * 512))
 			if mount -o loop,offset=$OFFSET,noatime -t ext4 "$ALPINE_IMAGE" /tmp/alpine 2>/dev/null; then
 				echo "Mounted $ALPINE_IMAGE (offset=$OFFSET) at /tmp/alpine"
@@ -183,9 +199,24 @@ else
 		fi
 	fi
 
-	# Last resort: if we created a losetup above but didn't mount it, try losetup -f --show -P again with quiet failure
+	# Last resort: if we still don't have a mounted part, try one more manual approach
 	if [ -z "$PART" ] && command -v losetup >/dev/null 2>&1; then
+		echo "Trying last resort manual loop device approach..."
 		LOOP="$(losetup -f --show "$ALPINE_IMAGE" 2>/dev/null || true)"
+		
+		# If standard approach still fails, try manual loop device allocation again
+		if [ -z "$LOOP" ]; then
+			for i in 1 8 9 10 11 12 13 14 15 16; do
+				if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
+					if losetup "/dev/loop$i" "$ALPINE_IMAGE" 2>/dev/null; then
+						LOOP="/dev/loop$i"
+						echo "Last resort: Successfully allocated loop device: $LOOP"
+						break
+					fi
+				fi
+			done
+		fi
+		
 		if [ -n "$LOOP" ]; then
 			if [ -e "${LOOP}p1" ]; then
 				if mount -t ext4 "${LOOP}p1" /tmp/alpine 2>/dev/null; then
@@ -247,11 +278,32 @@ else
 			# Try a quick test mount in read-only mode to see what the error is
 			TEST_DIR="/tmp/alpine_test_$$"
 			mkdir -p "$TEST_DIR" 2>/dev/null
-			if mount -o loop,ro -t ext4 "$ALPINE_IMAGE" "$TEST_DIR" 2>&1; then
+			
+			echo "Attempting direct mount test..."
+			MOUNT_ERROR=$(mount -o loop,ro -t ext4 "$ALPINE_IMAGE" "$TEST_DIR" 2>&1)
+			MOUNT_RESULT=$?
+			
+			if [ $MOUNT_RESULT -eq 0 ]; then
 				echo "Direct mount test: SUCCESS (unmounting now)"
 				umount "$TEST_DIR" 2>/dev/null || true
 			else
 				echo "Direct mount test: FAILED"
+				echo "Mount error details: $MOUNT_ERROR"
+				
+				# Try to see if it's a loop device issue specifically
+				if echo "$MOUNT_ERROR" | grep -q "loop device"; then
+					echo "This appears to be a loop device allocation problem."
+					echo "Checking which loop devices might be available..."
+					for i in 1 8 9 10 11 12 13 14 15 16; do
+						if [ -e "/dev/loop$i" ]; then
+							if losetup "/dev/loop$i" >/dev/null 2>&1; then
+								echo "/dev/loop$i: BUSY"
+							else
+								echo "/dev/loop$i: potentially available"
+							fi
+						fi
+					done
+				fi
 			fi
 			rmdir "$TEST_DIR" 2>/dev/null || true
 		fi

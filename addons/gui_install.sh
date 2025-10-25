@@ -6,7 +6,6 @@ apk update
 
 # Define essential packages for a minimal Fluxbox desktop on Kindle
 PACKAGES="
-    xorg-server
     xorg-server-xephyr
     xinit
     xwininfo

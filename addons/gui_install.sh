@@ -4,109 +4,103 @@
 echo "Updating package repositories..."
 apk update
 
-# Function to check if a package exists in repositories
-package_exists() {
-    apk search -x "$1" | grep -q "^$1-"
-}
+# Define essential packages for a minimal Fluxbox desktop on Kindle
+PACKAGES="
+    xorg-server
+    xorg-server-xephyr
+    xinit
+    xwininfo
+    fluxbox
+    xterm
+    dbus
+    sudo
+    bash
+    nano
+    firefox-esr
+    ttf-dejavu
+"
 
-# Function to add package to list if it exists
-add_if_exists() {
-    local pkg="$1"
-    local list_var="$2"
-    
-    if package_exists "$pkg"; then
-        eval "$list_var=\"\$$list_var $pkg\""
-    else
-        echo "Package '$pkg' not found in repositories, skipping..."
-    fi
-}
+echo "Installing Fluxbox desktop environment..."
+echo "Package list: $PACKAGES"
 
-# Initialize package lists
-CORE_PACKAGES=""
-GUI_PACKAGES=""
-BROWSER_PACKAGES=""
-PHOSH_PACKAGES=""
-FONT_PACKAGES=""
-
-# Core system packages (most likely to exist)
-for pkg in xorg-server-xephyr xwininfo xdotool xinput dbus-x11 sudo bash nano git desktop-file-utils gtk-engines; do
-    add_if_exists "$pkg" "CORE_PACKAGES"
-done
-
-# GUI/Desktop packages
-for pkg in seatd gtk-murrine-engine caja caja-extensions marco onboard; do
-    add_if_exists "$pkg" "GUI_PACKAGES"
-done
-
-# Browser alternatives (try multiple options)
-for pkg in firefox-esr chromium midori epiphany; do
-    add_if_exists "$pkg" "BROWSER_PACKAGES"
-    [ -n "$BROWSER_PACKAGES" ] && break  # Use first available browser
-done
-
-# Phosh packages (mobile desktop environment)
-for pkg in phosh phoc squeekboard phosh-wallpapers; do
-    add_if_exists "$pkg" "PHOSH_PACKAGES"
-done
-
-# Try to add desktop portal packages
-for pkg in xdg-desktop-portal xdg-desktop-portal-gtk; do
-    add_if_exists "$pkg" "GUI_PACKAGES"
-done
-
-# Add available phosh-related packages dynamically
-echo "Searching for additional phosh packages..."
-for pkg in $(apk search phosh -q | grep -v '\-dev' | grep -v '\-doc' | cut -d'-' -f1-2 | sort -u); do
-    if [ -n "$pkg" ] && package_exists "$pkg"; then
-        case "$PHOSH_PACKAGES" in
-            *"$pkg"*) ;;  # Already added
-            *) PHOSH_PACKAGES="$PHOSH_PACKAGES $pkg" ;;
-        esac
-    fi
-done
-
-# Add some essential TTF fonts (not all, to avoid overwhelming the system)
-echo "Adding essential font packages..."
-for pkg in ttf-dejavu ttf-liberation ttf-opensans; do
-    add_if_exists "$pkg" "FONT_PACKAGES"
-done
-
-# Combine all packages
-ALL_PACKAGES="$CORE_PACKAGES $GUI_PACKAGES $BROWSER_PACKAGES $PHOSH_PACKAGES $FONT_PACKAGES"
-
-# Clean up the package list (remove duplicates and empty entries)
-PACKAGES=$(echo $ALL_PACKAGES | tr ' ' '\n' | sort -u | grep -v '^$' | tr '\n' ' ')
-
-echo "Final package list: $PACKAGES"
-
-# Check which packages are not installed and install only those
-MISSING_PACKAGES=""
-for pkg in $PACKAGES; do
-    if ! apk info -e "$pkg" >/dev/null 2>&1; then
-        MISSING_PACKAGES="$MISSING_PACKAGES $pkg"
-    fi
-done
-
-# Install missing packages if any
-if [ -n "$MISSING_PACKAGES" ]; then
-    echo "Installing missing packages:$MISSING_PACKAGES"
-    if ! apk add --no-cache $MISSING_PACKAGES; then
-        echo "Some packages failed to install. Trying to install them individually..."
-        for pkg in $MISSING_PACKAGES; do
-            echo "Installing $pkg..."
-            if ! apk add --no-cache "$pkg"; then
-                echo "Failed to install $pkg, skipping..."
-            fi
-        done
-    fi
+# Install packages (apk will automatically skip already installed ones)
+if apk add --no-cache $PACKAGES; then
+    echo "✓ Successfully installed Fluxbox desktop packages"
 else
-    echo "All required packages are already installed."
+    echo "✗ Some packages failed to install. Trying individual installation..."
+    for pkg in $PACKAGES; do
+        # Skip empty lines
+        [ -z "$pkg" ] && continue
+        
+        echo "Installing $pkg..."
+        if ! apk add --no-cache "$pkg"; then
+            echo "  ✗ Failed to install $pkg"
+        else
+            echo "  ✓ Installed $pkg"
+        fi
+    done
 fi
 
 # Create a new user 'alpine' if it doesn't already exist
 if ! id -u alpine >/dev/null 2>&1; then
+    echo "Creating user 'alpine'..."
     adduser -D alpine
     echo "alpine:alpine" | chpasswd
     adduser alpine wheel
-    echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    
+    # Configure sudo access for wheel group
+    if ! grep -q "^%wheel" /etc/sudoers; then
+        echo "%wheel ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    fi
+    
+    echo "✓ User 'alpine' created with sudo access"
+else
+    echo "✓ User 'alpine' already exists"
 fi
+
+# Create basic Fluxbox configuration
+ALPINE_HOME="/home/alpine"
+if [ -d "$ALPINE_HOME" ]; then
+    echo "Setting up Fluxbox configuration..."
+    
+    # Create .fluxbox directory
+    mkdir -p "$ALPINE_HOME/.fluxbox"
+    
+    # Create a basic startup script for applications to run with Fluxbox
+    cat > "$ALPINE_HOME/.fluxbox/startup" << 'EOF'
+#!/bin/sh
+# Fluxbox startup script for Kindle
+
+# Start a terminal in the background for easy access
+xterm &
+
+# Keep Fluxbox running
+exec fluxbox
+EOF
+    
+    # Make startup script executable
+    chmod +x "$ALPINE_HOME/.fluxbox/startup"
+    
+    # Create .xinitrc for the alpine user (for use with startx)
+    cat > "$ALPINE_HOME/.xinitrc" << 'EOF'
+#!/bin/sh
+# X11 startup script for Kindle
+
+# Start Fluxbox (dbus will be handled by the parent script)
+exec fluxbox
+EOF
+    
+    chmod +x "$ALPINE_HOME/.xinitrc"
+    
+    # Set ownership to alpine user
+    chown -R alpine:alpine "$ALPINE_HOME/.fluxbox" "$ALPINE_HOME/.xinitrc"
+    
+    echo "✓ Fluxbox configuration created"
+fi
+
+echo ""
+echo "=== Fluxbox Installation Complete for Kindle ==="
+echo "GUI packages installed and configured for Xephyr environment."
+echo "Use the 'gui' script to start the desktop environment."
+echo ""
+echo "User credentials: alpine / alpine"

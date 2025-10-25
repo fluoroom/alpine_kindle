@@ -20,21 +20,12 @@ WINDOW_GEOMETRY=$(xwininfo -root -display :0 | egrep "geometry" | cut -d " "  -f
 DISPLAY=:0 Xephyr :1 -title "L:D_N:application_ID:xephyr" -ac -br -screen $WINDOW_GEOMETRY -cc 4 -reset -terminate &
 sleep 2
 
-# Drop into the Alpine user session
+# Drop into the Alpine user session and start Fluxbox
 su - alpine -c "
 export DISPLAY=:1
 
-# MATE settings commented out for Phosh 
-# if [ ! -f /home/alpine/.runonce ]; then
-#     echo 'Running first-time setup...'
-#     touch /home/alpine/.runonce
-#     gsettings set org.mate.interface window-scaling-factor 2
-#     gsettings set org.mate.interface window-scaling-factor-qt-sync true
-
-#     sleep 2
-# fi
-
-dbus-run-session phosh-session
+# Start dbus session and Fluxbox
+exec dbus-run-session fluxbox
 " > /dev/null 2>&1
 
 # Cleanup:

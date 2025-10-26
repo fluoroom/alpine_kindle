@@ -15,7 +15,7 @@
             "if": "\"kterm\" -ext",
             "items": [
                 {
-                    "name": "Deploy newest release of Alpine Linux for Kindle",
+                    "name": "Deploy newest release of Alpine Linux (PW6) for Kindle",
                     "action": "sh bin/kterm_run.sh get.sh",
                     "exitmenu": false
                 },
@@ -30,10 +30,21 @@
                     "exitmenu": false
                 },
                 {
-                    "name": "Delete Alpine Linux",
+                    "name": "Stop Alpine",
+                    "action": "sh bin/kterm_run.sh stop.sh",
+                    "exitmenu": false
+                },
+                {
+                    "name": "Delete Alpine Linux Root",
                     "action": "sh bin/kterm_run.sh delete.sh",
                     "exitmenu": false
+                },
+                {
+                    "name": "Delete Alpine HOME partition (User data and settings)",
+                    "action": "sh bin/kterm_run.sh deletehome.sh",
+                    "exitmenu": false
                 }
+
             ]
         }
     ]

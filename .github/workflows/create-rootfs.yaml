@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - pw6
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
-
 jobs:
   create-rootfs:
     runs-on: ubuntu-latest

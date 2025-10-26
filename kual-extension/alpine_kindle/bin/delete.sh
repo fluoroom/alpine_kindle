@@ -5,7 +5,14 @@ if [ "$(mount | grep /tmp/alpine)" ] ; then
     echo "Please unmount it (by starting the Alpine shell once then exit from it)"
     exit 1
 fi
+if [ -f /mnt/us/alpine/alpine.ext4 ]; then
+    echo "Deleting /mnt/us/alpine/alpine.ext4"
+    rm /mnt/us/alpine/alpine.ext4
+fi
 
-rm -rf /mnt/us/alpine
+if [ -f /mnt/us/alpine/alpine.sh ]; then
+    echo "Deleting /mnt/us/alpine/alpine.sh"
+    rm /mnt/us/alpine/alpine.sh
+fi
 
-read -p "Alpine Linux has been deleted. Press any key to continue..."
+read -p "Alpine Linux Root has been deleted. Press any key to continue..."

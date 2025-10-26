@@ -11,8 +11,6 @@ fi
 ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
 if [ -f "/mnt/us/alpine/alpine.ext4" ]; then
 	ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
-elif [ -f "/mnt/us/alpine/alpine.ext3" ]; then
-	ALPINE_IMAGE="/mnt/us/alpine/alpine.ext3"
 elif [ -f "/mnt/base-us/alpine/alpine.ext4" ]; then
 	ALPINE_IMAGE="/mnt/base-us/alpine/alpine.ext4"
 else
@@ -374,12 +372,49 @@ else
 		echo "Mounting home filesystem..."
 		mkdir -p /tmp/alpine/home
 		
-		# Try to mount the home filesystem
-		if ! mount -o loop,noatime -t ext4 "$HOME_IMAGE" /tmp/alpine/home 2>/dev/null; then
+		# Try the same approaches that worked for Alpine, in the same order
+		HOME_MOUNTED=false
+		
+		# First try: direct mount -o loop (like Alpine image)
+		if mount -o loop,noatime -t ext4 "$HOME_IMAGE" /tmp/alpine/home 2>/dev/null; then
+			echo "Home filesystem mounted at /tmp/alpine/home via mount -o loop"
+			HOME_MOUNTED=true
+		else
+			# If direct mount failed with loop device issue, use manual loop device allocation
+			echo "Direct home mount failed, trying manual loop device approach..."
+			if command -v losetup >/dev/null 2>&1; then
+				HOME_LOOP=""
+				
+				# Try to find an unused loop device manually (same approach as Alpine)
+				for i in 1 8 9 10 11 12 13 14 15 16; do
+					if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
+						# This loop device exists and appears to be free
+						if losetup "/dev/loop$i" "$HOME_IMAGE" 2>/dev/null; then
+							HOME_LOOP="/dev/loop$i"
+							echo "Successfully allocated loop device for home: $HOME_LOOP"
+							break
+						fi
+					fi
+				done
+				
+				# Try to mount using the allocated loop device
+				if [ -n "$HOME_LOOP" ]; then
+					if mount -t ext4 "$HOME_LOOP" /tmp/alpine/home 2>/dev/null; then
+						echo "Home filesystem mounted at /tmp/alpine/home using $HOME_LOOP"
+						HOME_MOUNTED=true
+					else
+						echo "Failed to mount home filesystem using loop device $HOME_LOOP"
+						losetup -d "$HOME_LOOP" 2>/dev/null || true
+					fi
+				else
+					echo "Could not allocate a loop device for home filesystem"
+				fi
+			fi
+		fi
+		
+		if [ "$HOME_MOUNTED" = "false" ]; then
 			echo "WARNING: Failed to mount home filesystem at $HOME_IMAGE"
 			echo "Continuing without separate home filesystem..."
-		else
-			echo "Home filesystem mounted at /tmp/alpine/home"
 		fi
 	fi
 fi
@@ -417,8 +452,11 @@ else
 	LOOPDEV="$(mount | grep '/tmp/alpine ' | grep -o '/dev/loop[0-9]*' | head -1 || true)"
 
 	# Unmount home filesystem first if it's mounted
+	HOME_LOOPDEV=""
 	if mount | grep -q "/tmp/alpine/home"; then
 		echo "Unmounting home filesystem..."
+		# Get the loop device for home before unmounting
+		HOME_LOOPDEV="$(mount | grep '/tmp/alpine/home ' | grep -o '/dev/loop[0-9]*' | head -1 || true)"
 		umount /tmp/alpine/home || echo "Warning: Failed to unmount /tmp/alpine/home"
 	fi
 
@@ -470,16 +508,25 @@ else
 		echo "Alpine was not mounted"
 	fi
 
-	# Clean up the loop device if we found one and Alpine is unmounted
+	# Clean up the loop devices if we found them and filesystems are unmounted
 	if [ -n "$LOOPDEV" ] && ! mount | grep -q "/tmp/alpine"; then
-		echo "Disassociating loop device >>$LOOPDEV<<"
+		echo "Disassociating main loop device >>$LOOPDEV<<"
 		if ! losetup -d "$LOOPDEV" 2>/dev/null; then
 			echo "Warning: Failed to disassociate loop device $LOOPDEV"
 			echo "You may need to run: losetup -d $LOOPDEV"
 		fi
 	elif [ -z "$LOOPDEV" ]; then
-		# Nothing to do
+		# Nothing to do for main loop device
 		:
+	fi
+	
+	# Clean up home loop device if we found one
+	if [ -n "$HOME_LOOPDEV" ] && ! mount | grep -q "/tmp/alpine/home"; then
+		echo "Disassociating home loop device >>$HOME_LOOPDEV<<"
+		if ! losetup -d "$HOME_LOOPDEV" 2>/dev/null; then
+			echo "Warning: Failed to disassociate home loop device $HOME_LOOPDEV"
+			echo "You may need to run: losetup -d $HOME_LOOPDEV"
+		fi
 	fi
 
 	# Clean up the mount point

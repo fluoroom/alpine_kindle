@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - senpai
-  schedule:
-  
-  workflow_dispatch:
-
 jobs:
   create-rootfs:
     runs-on: ubuntu-latest

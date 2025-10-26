@@ -1,9 +1,7 @@
 name: Create Alpine rootfs images
 
 on:
-  push:
-    branches:
-      - senpai
+  workflow_dispatch:
 jobs:
   create-rootfs:
     runs-on: ubuntu-latest

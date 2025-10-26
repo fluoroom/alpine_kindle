@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - pw6
+  workflow_dispatch:
+
 jobs:
   create-rootfs:
     runs-on: ubuntu-latest

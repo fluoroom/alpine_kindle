@@ -5,6 +5,7 @@ on:
     branches:
       - senpai
   schedule:
+  
   workflow_dispatch:
 
 jobs:

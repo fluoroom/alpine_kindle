@@ -25,6 +25,7 @@ unzip alpine.zip
 rm alpine.zip
 
 mntroot rw
+echo "Copying alpine.sh to /etc/upstart/"
 cp alpine.conf /etc/upstart/
 mntroot r
 

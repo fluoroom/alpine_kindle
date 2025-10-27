@@ -431,20 +431,20 @@ else
 fi
 
 if [ $ALREADYMOUNTED = "yes" ] ; then
-	echo "Umount is being skipped, as the rootfs was mounted already. Do you want to force stop? (y/n) Default: N."
+	echo "Umount is being skipped, as the rootfs was mounted already. Do you want to force stop? (y/N*): "
 	read -r FORCE_STOP
 	if [ "$FORCE_STOP" = "y" ] || [ "$FORCE_STOP" = "Y" ]; then
 		umount_alpine
 	fi
 else
-	echo "Alpine will be unmounted as there was no previous mount. Do you want to keep it running? (y/n) Default: N."
+	echo "Alpine will be unmounted as there was no previous mount. Do you want to keep it running? (y/N*): "
 	read -r KEEP_RUNNING
 	if [ "$KEEP_RUNNING" = "y" ] || [ "$KEEP_RUNNING" = "Y" ]; then
 		echo "Keeping Alpine running"
 	else
 		umount_alpine
 	fi
-}
+fi
 umount_alpine() {
 	echo "You returned from Alpine, killing remaining processes"
 	# Kill processes if they exist, but don't fail if they don't

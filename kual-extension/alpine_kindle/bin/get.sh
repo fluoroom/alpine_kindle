@@ -8,7 +8,7 @@ else
     IMAGE_ARCH=$MACHINE_ARCH
 fi
 
-if [ -f /mnt/base-us/alpine.ext4 ]; then
+if [ -f /mnt/base-us/alpine/alpine.ext4 ] || [ -f /mnt/base-us/alpine/alpine.sh ] || [ -f /mnt/base-us/alpine/alpine.conf ]; then
     echo "Alpine Linux appears to already exist."
     read -p "Press any key to continue..."
     exit 1

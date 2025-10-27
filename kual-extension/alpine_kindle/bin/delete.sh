@@ -20,4 +20,9 @@ if [ -f /mnt/us/alpine/alpine.sh ]; then
     rm /mnt/us/alpine/alpine.sh
 fi
 
+if [ -f /mnt/us/alpine/alpine.conf ]; then
+    echo "Deleting /mnt/us/alpine/alpine.conf"
+    rm /mnt/us/alpine/alpine.conf
+fi
+
 read -p "Alpine Linux Root has been deleted. Press any key to continue..."

@@ -2,7 +2,7 @@
 
 if [ "$(mount | grep /tmp/alpine)" ] ; then
     echo "ATTENTION! Alpine's rootfs is still mounted."
-    echo "Please unmount it (by starting the Alpine shell once then exit from it)"
+    echo "Please unmount it (Stop from KUAL) before deleting."
     exit 1
 fi
 if [ -f /mnt/us/alpine/alpine.ext4 ]; then

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sh /mnt/us/alpine/alpine.sh --gui
+sh /mnt/us/alpine/alpine.sh --gui --stop_framework

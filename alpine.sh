@@ -1,24 +1,5 @@
 #!/bin/sh
 
-
-amazon_framework(){
-	if [ $1 = "start" ] ; then
-		logmsg "Starting the framework . . ."
-		start lab126_gui
-	elif [ $1 = "stop" ] ; then
-		logmsg "Stopping the framework . . ."
-		# The framework job sends a SIGTERM on stop, trap it so we don't get killed if we were launched by KUAL
-        trap "" TERM
-        stop lab126_gui
-        # NOTE: Let the framework teardown finish, so we don't start before the black screen...
-        usleep 1250000
-        # And remove the trap like a ninja now!
-        trap - TERM
-	else
-		echo "amazon_framework: unknown argument $1"
-	fi
-}
-
 # Try to find an unused loop device manually and attach image
 try_manual_loop_allocation() {
 	local image_file="$1"
@@ -270,7 +251,8 @@ done
 # Stop framework if requested
 if [ "$FRAMEWORK_STOPPED" = "true" ]; then
 	echo "Stopping Amazon framework..."
-	amazon_framework stop
+	start alpine
+	exit 0
 fi
 
 # Determine the correct Alpine image file to use

@@ -30,3 +30,4 @@ jobs:
           path: |
             alpine.ext4
             alpine.sh
+            alpine.conf

@@ -1,4 +1,9 @@
 #!/bin/sh
+read -p "Are you sure you want to delete the HOME filesystem for Alpine Linux? This action cannot be undone. (y/N): " CONFIRM
+if [ "$CONFIRM" != "y" ] ; then
+    echo "Deletion cancelled."
+    exit 0
+fi
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 

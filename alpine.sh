@@ -1,4 +1,47 @@
 #!/bin/sh
+# Alpine Linux wrapper for Kindle
+# Inspired by KOReader's framework handling and cleanup measures
+
+# NOTE: Copy script to tmpfs to avoid issues with vfat+fuse during execution
+if [ "$(dirname "${0}")" != "/var/tmp" ]; then
+	cp -pf "${0}" /var/tmp/alpine.sh
+	chmod 777 /var/tmp/alpine.sh
+	exec /var/tmp/alpine.sh "$@"
+fi
+
+export LC_ALL="en_US.UTF-8"
+
+# Unlock keypad and fiveway if available
+PROC_KEYPAD="/proc/keypad"
+PROC_FIVEWAY="/proc/fiveway"
+[ -e "${PROC_KEYPAD}" ] && echo unlock >"${PROC_KEYPAD}"
+[ -e "${PROC_FIVEWAY}" ] && echo unlock >"${PROC_FIVEWAY}"
+
+# Detect init system (upstart or sysv)
+if [ -d "/etc/upstart" ]; then
+	INIT_TYPE="upstart"
+else
+	INIT_TYPE="sysv"
+fi
+
+# Logging helper
+logmsg() {
+	echo "[Alpine] ${1}"
+}
+
+# Keep track of what we've modified
+STOP_FRAMEWORK="no"
+AWESOME_STOPPED="no"
+CVM_STOPPED="no"
+VOLUMD_STOPPED="no"
+PILLOW_HARD_DISABLED="no"
+PILLOW_SOFT_DISABLED="no"
+
+# List of services to stop for RAM reclamation (from KOReader)
+TOGGLED_SERVICES="webreader kfxreader kfxview todo tmd rcm archive scanner otav3 otaupd"
+
+# Normalize a version string for easy numeric comparisons
+version() { echo "$@" | awk -F. '{ printf("%d%03d%03d\n", $1,$2,$3); }'; }
 
 # Try to find an unused loop device manually and attach image
 try_manual_loop_allocation() {
@@ -108,11 +151,7 @@ umount_alpine() {
 		fi
 	fi
 	
-	# Restart framework if it was stopped
-	if [ "$FRAMEWORK_STOPPED" = "true" ]; then
-		echo "Restarting Amazon framework..."
-		amazon_framework start
-	fi
+	
 
 	echo "Unmounting Alpine rootfs"
 	# Get the loop device associated with /tmp/alpine before unmounting
@@ -211,30 +250,31 @@ umount_alpine() {
 	# Clean up the mount point
 	rmdir /tmp/alpine 2>/dev/null || true
 
-	echo "All done, you're now back at your kindle's shell."
+	echo "All done, Alpine filesystems unmounted."
 }
 
 
 # Parse command line parameters
-AUTO_GUI=false
-FRAMEWORK_STOPPED=false
+KEEP_RUNNING=false
 
 while [ $# -gt 0 ]; do
 	case "$1" in
-		--gui)
-			AUTO_GUI=true
-			echo "GUI mode enabled - will start GUI after entering Alpine"
+		--keep-running)
+			KEEP_RUNNING=true
+			logmsg "Keep-running mode enabled - Alpine will stay mounted after logout"
 			;;
-		--stop_framework)
-			FRAMEWORK_STOPPED=true
-			echo "Framework stop requested - will stop Amazon framework"
+		--stop-framework)
+			STOP_FRAMEWORK="yes"
+			logmsg "Framework stop requested - will stop Amazon framework"
 			;;
 		--help|-h)
 			echo "Usage: $0 [OPTIONS]"
 			echo ""
+			echo "Alpine Linux wrapper - manages Alpine GUI via upstart service"
+			echo ""
 			echo "Options:"
-			echo "  --gui              Start Alpine with GUI (runs 'gui' command)"
-			echo "  --stop_framework   Stop Amazon framework before entering Alpine"
+			echo "  --keep-running     Keep Alpine mounted after logout (skip prompt)"
+			echo "  --stop-framework   Stop Amazon framework before entering Alpine"
 			echo "  --help, -h         Show this help message"
 			echo ""
 			exit 0
@@ -247,13 +287,6 @@ while [ $# -gt 0 ]; do
 	esac
 	shift
 done
-
-# Stop framework if requested
-if [ "$FRAMEWORK_STOPPED" = "true" ]; then
-	echo "Stopping Amazon framework..."
-	start alpine
-	exit 0
-fi
 
 # Determine the correct Alpine image file to use
 ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
@@ -276,6 +309,78 @@ echo "Using Alpine image: $ALPINE_IMAGE"
 # Determine home.ext4 location (same directory as Alpine image)
 ALPINE_DIR="$(dirname "$ALPINE_IMAGE")"
 HOME_IMAGE="$ALPINE_DIR/home.ext4"
+
+# ===== FRAMEWORK HANDLING (adapted from KOReader) =====
+
+# Check if we need to stop the framework
+if [ "${STOP_FRAMEWORK}" = "yes" ]; then
+	logmsg "Stopping the Amazon framework..."
+	
+	# Dump framebuffer so we can restore something useful on exit
+	cat /dev/fb0 >/var/tmp/alpine-fb.dump
+	
+	# Stop the framework (method depends on init system)
+	if [ "${INIT_TYPE}" = "sysv" ]; then
+		/etc/init.d/framework stop
+	else
+		# Upstart: trap SIGTERM so we don't get killed
+		trap "" TERM
+		stop lab126_gui
+		# Let framework teardown finish
+		usleep 1250000
+		# Remove the trap
+		trap - TERM
+	fi
+fi
+
+# Get firmware version if on upstart (for version-specific handling)
+if [ "${INIT_TYPE}" = "upstart" ]; then
+	FW_VERSION="$(grep '^Kindle 5' /etc/prettyversion.txt 2>&1 | sed -n -r 's/^(Kindle)([[:blank:]]*)([[:digit:]\.]*)(.*?)$/\3/p')"
+	
+	# On newer firmwares, disable pillow to prevent status bar interference
+	if [ -n "${FW_VERSION}" ]; then
+		if [ "$(version "${FW_VERSION}")" -ge "$(version "5.6.5")" ]; then
+			logmsg "Disabling pillow (FW >= 5.6.5)..."
+			cat /dev/fb0 >/var/tmp/alpine-fb.dump
+			lipc-set-prop com.lab126.pillow disableEnablePillow disable
+			PILLOW_HARD_DISABLED="yes"
+			
+			# On FW >= 5.7.2, also stop awesome to prevent clock refreshes
+			if [ "$(version "${FW_VERSION}")" -ge "$(version "5.7.2")" ]; then
+				logmsg "Stopping awesome window manager..."
+				killall -STOP awesome
+				AWESOME_STOPPED="yes"
+			fi
+		elif [ "$(version "${FW_VERSION}")" -ge "$(version "5.0.0")" ]; then
+			logmsg "Hiding status bar (soft method)..."
+			cat /dev/fb0 >/var/tmp/alpine-fb.dump
+			lipc-set-prop com.lab126.pillow interrogatePillow '{"pillowId": "default_status_bar", "function": "nativeBridge.hideMe();"}'
+			PILLOW_SOFT_DISABLED="yes"
+		fi
+	fi
+	
+	# Murder some services to reclaim RAM
+	logmsg "Stopping background services to reclaim RAM..."
+	for job in ${TOGGLED_SERVICES}; do
+		stop "${job}" 2>/dev/null || true
+	done
+fi
+
+# Stop cvm on sysv systems
+if [ "${STOP_FRAMEWORK}" = "no" ] && [ "${INIT_TYPE}" = "sysv" ]; then
+	logmsg "Stopping cvm..."
+	killall -STOP cvm
+	CVM_STOPPED="yes"
+fi
+
+# SIGSTOP volumd to inhibit USBMS
+if [ -e "/etc/init.d/volumd" ] || [ -e "/etc/upstart/volumd.conf" ]; then
+	logmsg "Stopping volumd (inhibit USB mass storage)..."
+	killall -STOP volumd
+	VOLUMD_STOPPED="yes"
+fi
+
+# ===== HOME FILESYSTEM SETUP =====
 
 # Check if home.ext4 exists, if not ask user to create it
 if [ ! -f "$HOME_IMAGE" ]; then
@@ -396,19 +501,110 @@ else
     echo "Exited Alpine's shell"
 fi
 
+# ===== CLEANUP AND RESTORATION (adapted from KOReader) =====
+
+logmsg "Alpine session ended, cleaning up..."
+
+# Kill any stray Alpine processes
+if pgrep Xephyr > /dev/null 2>&1; then
+	logmsg "Killing Xephyr processes..."
+	killall -TERM Xephyr 2>/dev/null || true
+fi
+
+if command -v lsof > /dev/null 2>&1; then
+	ALPINE_PROCS=$(lsof -t /tmp/alpine/ 2>/dev/null || true)
+	if [ -n "$ALPINE_PROCS" ]; then
+		logmsg "Killing processes using Alpine filesystem..."
+		kill -9 $ALPINE_PROCS 2>/dev/null || true
+	fi
+fi
+
+# Resume volumd if we stopped it
+if [ "${VOLUMD_STOPPED}" = "yes" ]; then
+	logmsg "Resuming volumd..."
+	killall -CONT volumd
+fi
+
+# Resume cvm if we stopped it (sysv only)
+if [ "${CVM_STOPPED}" = "yes" ]; then
+	logmsg "Resuming cvm..."
+	killall -CONT cvm
+	# Trigger screen refresh on Kindle 3
+	echo 'send 139' >/proc/keypad
+	echo 'send 139' >/proc/keypad
+fi
+
+# Restart framework if we stopped it
+if [ "${STOP_FRAMEWORK}" = "yes" ]; then
+	logmsg "Restarting Amazon framework..."
+	if [ "${INIT_TYPE}" = "sysv" ]; then
+		cd / && /etc/init.d/framework start
+	else
+		cd / && start lab126_gui
+	fi
+fi
+
+# Restore pillow and services on upstart systems
+if [ "${INIT_TYPE}" = "upstart" ]; then
+	# Resume awesome if we stopped it
+	if [ "${AWESOME_STOPPED}" = "yes" ]; then
+		logmsg "Resuming awesome window manager..."
+		killall -CONT awesome
+	fi
+	
+	# Re-enable pillow if we disabled it
+	if [ "${PILLOW_HARD_DISABLED}" = "yes" ]; then
+		logmsg "Re-enabling pillow..."
+		# Restore framebuffer content
+		cat /var/tmp/alpine-fb.dump >/dev/fb0
+		rm -f /var/tmp/alpine-fb.dump
+		lipc-set-prop com.lab126.pillow disableEnablePillow enable
+		lipc-set-prop com.lab126.appmgrd start app://com.lab126.booklet.home
+	fi
+	
+	# Restore status bar if we hid it
+	if [ "${PILLOW_SOFT_DISABLED}" = "yes" ]; then
+		logmsg "Restoring status bar..."
+		# Restore framebuffer content
+		cat /var/tmp/alpine-fb.dump >/dev/fb0
+		rm -f /var/tmp/alpine-fb.dump
+		lipc-set-prop com.lab126.pillow interrogatePillow '{"pillowId": "default_status_bar", "function": "nativeBridge.showMe();"}'
+		lipc-set-prop com.lab126.appmgrd start app://com.lab126.booklet.home
+	fi
+	
+	# Resume the services we stopped
+	logmsg "Resuming background services..."
+	for job in ${TOGGLED_SERVICES}; do
+		start "${job}" 2>/dev/null || true
+	done
+fi
+
+# Unmount Alpine filesystems
+# Unmount Alpine filesystems
 if [ $ALREADYMOUNTED = "yes" ] ; then
-	echo "Umount is being skipped, as the rootfs was mounted already. Do you want to force stop? (y/N*): "
+	logmsg "Alpine was already mounted, skipping unmount to avoid disturbing other sessions"
+	printf "Do you want to force stop? (y/N): "
 	read -r FORCE_STOP
 	if [ "$FORCE_STOP" = "y" ] || [ "$FORCE_STOP" = "Y" ]; then
 		umount_alpine
 	fi
 else
-	echo "Alpine will be unmounted as there was no previous mount. Do you want to keep it running? (y/N*): "
-	read -r KEEP_RUNNING
-	if [ "$KEEP_RUNNING" = "y" ] || [ "$KEEP_RUNNING" = "Y" ]; then
-		echo "Keeping Alpine running"
+	if [ "${KEEP_RUNNING}" = "true" ]; then
+		logmsg "Keeping Alpine mounted (--keep-running mode)"
 	else
-		umount_alpine
+		printf "Do you want to keep Alpine running in background? (y/N): "
+		read -r KEEP_ANSWER
+		
+		if [ "$KEEP_ANSWER" = "y" ] || [ "$KEEP_ANSWER" = "Y" ]; then
+			logmsg "Keeping Alpine mounted in background"
+		else
+			umount_alpine
+		fi
 	fi
 fi
+
+# Cleanup: remove temporary copy of this script
+rm -f /var/tmp/alpine.sh /var/tmp/alpine-fb.dump
+
+logmsg "Done. Goodbye!"
 

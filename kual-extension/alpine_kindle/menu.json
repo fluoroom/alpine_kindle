@@ -46,7 +46,7 @@
                 },
                 {
                     "name": "Update this KUAL Extension",
-                    "action": "sh bin/update.sh",
+                    "action": "sh bin/kterm_run.sh update.sh",
                     "exitmenu": false
                 }
 

@@ -1,5 +1,4 @@
 #!/bin/sh
-set -e
 
 TMP=/tmp/alpine_kindle_pw6_kual
 URL="https://github.com/fluoroom/alpine_kindle/archive/refs/heads/pw6.zip"

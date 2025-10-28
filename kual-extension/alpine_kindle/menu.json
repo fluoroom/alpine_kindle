@@ -43,6 +43,11 @@
                     "name": "Delete Alpine HOME partition (User data and settings)",
                     "action": "sh bin/kterm_run.sh deletehome.sh",
                     "exitmenu": false
+                },
+                {
+                    "name": "Update this KUAL Extension",
+                    "action": "sh bin/update.sh",
+                    "exitmenu": false
                 }
 
             ]

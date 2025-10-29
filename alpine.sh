@@ -1,450 +1,55 @@
 #!/bin/sh
 
-# Check for --gui flag
-AUTO_GUI=false
-if [ "$1" = "--gui" ]; then
-    AUTO_GUI=true
-    echo "GUI mode enabled - will start GUI after entering Alpine"
-fi
-
-# Determine the correct Alpine image file to use
-ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
-if [ -f "/mnt/us/alpine/alpine.ext4" ]; then
-	ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
-elif [ -f "/mnt/base-us/alpine/alpine.ext4" ]; then
-	ALPINE_IMAGE="/mnt/base-us/alpine/alpine.ext4"
-else
-	echo "ERROR: Alpine image file not found!"
-	echo "Looked for:"
-	echo "  /mnt/us/alpine.ext4"
-	echo "  /mnt/us/alpine.ext3"
-	echo "  /mnt/base-us/alpine/alpine.ext4"
-	echo "Please ensure the Alpine image is properly installed."
-	exit 1
-fi
-
-echo "Using Alpine image: $ALPINE_IMAGE"
-
-# Determine home.ext4 location (same directory as Alpine image)
-ALPINE_DIR="$(dirname "$ALPINE_IMAGE")"
-HOME_IMAGE="$ALPINE_DIR/home.ext4"
-
-# Check if home.ext4 exists, if not ask user to create it
-if [ ! -f "$HOME_IMAGE" ]; then
-	echo ""
-	echo "Home filesystem (home.ext4) not found at: $HOME_IMAGE"
-	printf "Do you want to create it? (y/n): "
-	read -r CREATE_HOME
+# Function to mount an ext4 image file to a mount point
+# Usage: mount_image <image_file> <mount_point> [description]
+mount_image() {
+	local IMAGE_FILE="$1"
+	local MOUNT_POINT="$2"
+	local DESCRIPTION="${3:-filesystem}"
 	
-	if [ "$CREATE_HOME" = "y" ] || [ "$CREATE_HOME" = "Y" ]; then
-		printf "Enter size for home filesystem in MB (default: 512): "
-		read -r HOME_SIZE
-		
-		# Default to 512MB if no input
-		if [ -z "$HOME_SIZE" ]; then
-			HOME_SIZE=512
-		fi
-		
-		# Validate input is a number
-		if ! echo "$HOME_SIZE" | grep -q '^[0-9][0-9]*$'; then
-			echo "ERROR: Size must be a positive number"
-			exit 1
-		fi
-		
-		echo "Creating home filesystem ($HOME_SIZE MB) at: $HOME_IMAGE"
-		dd if=/dev/zero of="$HOME_IMAGE" bs=1M count="$HOME_SIZE" 2>/dev/null
-		if ! mkfs.ext4 -F "$HOME_IMAGE" >/dev/null 2>&1; then
-			echo "ERROR: Failed to create home filesystem"
-			rm -f "$HOME_IMAGE"
-			exit 1
-		fi
-		# Optimize the filesystem for embedded use
-		tune2fs -i 0 -c 0 -O ^has_journal "$HOME_IMAGE" >/dev/null 2>&1
-		echo "Home filesystem created successfully"
-	else
-		echo "Continuing without home filesystem..."
-		HOME_IMAGE=""
+	if [ ! -f "$IMAGE_FILE" ]; then
+		echo "ERROR: Image file not found: $IMAGE_FILE"
+		return 1
 	fi
-else
-	echo "Using home filesystem: $HOME_IMAGE"
-fi
-
-ALREADYMOUNTED="no"
-if mount | grep -q "/tmp/alpine"; then
-	ALREADYMOUNTED="yes"
-	echo "ATTENTION! Alpine's rootfs is already mounted, thus you will be just dropped into it."
-	echo "BE CAREFUL to leave this shell first, as there will be no umount either (To not disturb the other session)."
-else
-	echo "Mounting Alpine rootfs"
-	mkdir -p /tmp/alpine
-
-	# Helper: cleanup and exit on mount failure
-	_fail_mount() {
-		echo "ERROR: Failed to mount Alpine image at $ALPINE_IMAGE"
-		echo "This could be due to:"
-		echo "  - File is corrupted or not a valid ext4 filesystem"
-		echo "  - No available loop devices or kernel lacks loop support"
-		echo "  - Image contains partitions (use losetup -P or mount with offset)"
-		echo "  - Insufficient permissions"
-		rmdir /tmp/alpine 2>/dev/null
-		exit 1
-	}
-
-	# Ensure loop support: try modprobe (may fail quietly)
-	if command -v modprobe >/dev/null 2>&1; then
-		modprobe loop 2>/dev/null || true
-	fi
-
-	# Create /dev/loop* nodes if none exist (helpful on minimal systems)
-	if [ ! -e /dev/loop0 ]; then
-		# attempt to create a reasonable number of nodes (0-7)
-		if command -v mknod >/dev/null 2>&1; then
-			for i in 0 1 2 3 4 5 6 7; do
-				if [ ! -e /dev/loop$i ]; then
-					mknod -m660 /dev/loop$i b 7 $i 2>/dev/null || true
-				fi
-			done
+	
+	mkdir -p "$MOUNT_POINT"
+	
+	# Create additional loop device nodes if needed (silently)
+	for i in 1 8 9 10 11 12 13 14 15; do
+		if [ ! -e "/dev/loop$i" ]; then
+			mknod "/dev/loop$i" b 7 $i 2>/dev/null || true
+			chmod 660 "/dev/loop$i" 2>/dev/null || true
 		fi
+	done
+	
+	# Try direct mount first
+	if mount -o loop,noatime -t ext4 "$IMAGE_FILE" "$MOUNT_POINT" 2>/dev/null; then
+		return 0
 	fi
-
-	LOOP=""    # the loop device we attached (if any)
-	PART=""    # the device or partition we will try to mount
-
-	# Prefer losetup if available
-	if command -v losetup >/dev/null 2>&1; then
-		# First try the standard approach
-		LOOP="$(losetup -f --show "$ALPINE_IMAGE" 2>/dev/null || true)"
-		
-		# If that failed, try to find an unused loop device manually
-		if [ -z "$LOOP" ]; then
-			echo "Standard loop device allocation failed, trying manual approach..."
-			for i in 1 8 9 10 11 12 13 14 15 16; do
-				if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
-					# This loop device exists and appears to be free
-					if losetup "/dev/loop$i" "$ALPINE_IMAGE" 2>/dev/null; then
-						LOOP="/dev/loop$i"
-						echo "Successfully allocated loop device: $LOOP"
-						break
-					fi
-				fi
-			done
-		fi
-		
-		if [ -n "$LOOP" ]; then
-			# If kernel created partition nodes, prefer first partition
-			if [ -e "${LOOP}p1" ]; then
-				PART="${LOOP}p1"
-			else
-				# Some kernels don't create p1 but image might be raw fs
-				PART="$LOOP"
+	
+	# If direct mount fails, try manual loop device allocation
+	local LOOP_DEVICE=""
+	for i in 1 8 9 10 11 12 13 14 15; do
+		if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
+			if losetup "/dev/loop$i" "$IMAGE_FILE" 2>/dev/null; then
+				LOOP_DEVICE="/dev/loop$i"
+				break
 			fi
 		fi
-	fi
-
-	# If losetup didn't succeed or isn't available, try mount -o loop directly
-	if [ -z "$PART" ]; then
-		if mount -o loop,noatime -t ext4 "$ALPINE_IMAGE" /tmp/alpine 2>/dev/null; then
-			echo "Mounted $ALPINE_IMAGE at /tmp/alpine via mount -o loop"
-			# mark LOOP empty to indicate mount done (no losetup tracking needed)
-			LOOP=""
-			PART="/tmp/alpine"
+	done
+	
+	if [ -n "$LOOP_DEVICE" ]; then
+		if mount -t ext4 "$LOOP_DEVICE" "$MOUNT_POINT" 2>/dev/null; then
+			return 0
 		else
-			# mount -o loop failed. Try to detect partition and use offset approach.
-			:
+			losetup -d "$LOOP_DEVICE" 2>/dev/null || true
 		fi
 	fi
+	
+	# Both methods failed
+	return 1
+}
 
-	# If we have a losetup device, try mounting PART (loop or loopXp1)
-	if [ -n "$LOOP" ] && [ -n "$PART" ] && [ "$PART" != "/tmp/alpine" ]; then
-		if mount -t ext4 "$PART" /tmp/alpine 2>/dev/null; then
-			echo "Mounted $PART at /tmp/alpine"
-		else
-			# mounting partition failed -> detach and fallback to offset method
-			losetup -d "$LOOP" 2>/dev/null || true
-			LOOP=""
-			PART=""
-		fi
-	fi
-
-	# If still not mounted, try partition offset detection (fdisk/parted) if present
-	if [ -z "$PART" ] || [ "$PART" = "" ]; then
-		# Try fdisk first
-		START_SECTOR=""
-		if command -v fdisk >/dev/null 2>&1; then
-			# fdisk output varies; try to find the "Start" of first partition
-			# Use a different approach to avoid awk pattern issues with paths containing slashes
-			START_SECTOR=$(fdisk -l "$ALPINE_IMAGE" 2>/dev/null | awk 'BEGIN{found=0} /^Device.*Start/ {found=1; next} found && /^[^[:space:]]/ && /[0-9]+/ {print $2; exit}')
-			# fallback: look for any partition line with numeric start
-			if [ -z "$START_SECTOR" ]; then
-				START_SECTOR=$(fdisk -l "$ALPINE_IMAGE" 2>/dev/null | awk '/^[^[:space:]].*[0-9]+.*[0-9]+.*[0-9]+/ {print $2; exit}')
-			fi
-		fi
-
-		# Try parted if fdisk not available or fdisk didn't help
-		if [ -z "$START_SECTOR" ] && command -v parted >/dev/null 2>&1; then
-			# parted prints sectors if unit s is set
-			START_SECTOR=$(parted -s "$ALPINE_IMAGE" unit s print 2>/dev/null | awk '/^ 1/ {gsub("s","",$2); print $2; exit}')
-		fi
-
-		if [ -n "$START_SECTOR" ] && echo "$START_SECTOR" | grep -q '^[0-9][0-9]*$'; then
-			OFFSET=$((START_SECTOR * 512))
-			if mount -o loop,offset=$OFFSET,noatime -t ext4 "$ALPINE_IMAGE" /tmp/alpine 2>/dev/null; then
-				echo "Mounted $ALPINE_IMAGE (offset=$OFFSET) at /tmp/alpine"
-				PART="/tmp/alpine"
-			else
-				echo "Offset mount failed (offset=$OFFSET)"
-			fi
-		fi
-	fi
-
-	# Last resort: if we still don't have a mounted part, try one more manual approach
-	if [ -z "$PART" ] && command -v losetup >/dev/null 2>&1; then
-		echo "Trying last resort manual loop device approach..."
-		LOOP="$(losetup -f --show "$ALPINE_IMAGE" 2>/dev/null || true)"
-		
-		# If standard approach still fails, try manual loop device allocation again
-		if [ -z "$LOOP" ]; then
-			for i in 1 8 9 10 11 12 13 14 15 16; do
-				if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
-					if losetup "/dev/loop$i" "$ALPINE_IMAGE" 2>/dev/null; then
-						LOOP="/dev/loop$i"
-						echo "Last resort: Successfully allocated loop device: $LOOP"
-						break
-					fi
-				fi
-			done
-		fi
-		
-		if [ -n "$LOOP" ]; then
-			if [ -e "${LOOP}p1" ]; then
-				if mount -t ext4 "${LOOP}p1" /tmp/alpine 2>/dev/null; then
-					echo "Mounted ${LOOP}p1 at /tmp/alpine"
-					PART="${LOOP}p1"
-				fi
-			else
-				if mount -t ext4 "$LOOP" /tmp/alpine 2>/dev/null; then
-					echo "Mounted $LOOP at /tmp/alpine"
-					PART="$LOOP"
-				fi
-			fi
-		fi
-	fi
-
-	# If nothing succeeded, show diagnostics and fail
-	if ! mount | grep -q "/tmp/alpine"; then
-		# cleanup any loop we attached
-		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
-
-		# extra diagnostics for user
-		echo ""
-		echo "Detailed diagnostics (if available):"
-		
-		# Check if the image file is accessible and what type it is
-		if [ -f "$ALPINE_IMAGE" ]; then
-			echo "Image file exists and is accessible: $ALPINE_IMAGE"
-			echo "Image file size: $(ls -lh "$ALPINE_IMAGE" 2>/dev/null | awk '{print $5}' || echo 'unknown')"
-			if command -v file >/dev/null 2>&1; then
-				echo "File type: $(file "$ALPINE_IMAGE" 2>/dev/null || echo 'unknown')"
-			fi
-			
-			# Try to check filesystem integrity if fsck is available
-			if command -v fsck.ext4 >/dev/null 2>&1; then
-				echo "Checking filesystem integrity..."
-				if fsck.ext4 -n "$ALPINE_IMAGE" >/dev/null 2>&1; then
-					echo "Filesystem check: PASSED"
-				else
-					echo "Filesystem check: FAILED (filesystem may be corrupted)"
-				fi
-			fi
-		else
-			echo "ERROR: Image file not accessible: $ALPINE_IMAGE"
-		fi
-		
-		# Check available loop devices
-		if command -v losetup >/dev/null 2>&1; then
-			echo ""
-			echo "losetup -a output:"
-			losetup -a 2>/dev/null || true
-			echo "Available loop devices:"
-			ls -la /dev/loop* 2>/dev/null || echo "No loop devices found in /dev/"
-		fi
-		
-		# Check if we can try manual mount as a test
-		echo ""
-		echo "Testing direct mount capability..."
-		if command -v mount >/dev/null 2>&1; then
-			# Try a quick test mount in read-only mode to see what the error is
-			TEST_DIR="/tmp/alpine_test_$$"
-			mkdir -p "$TEST_DIR" 2>/dev/null
-			
-			echo "Attempting direct mount test..."
-			MOUNT_ERROR=$(mount -o loop,ro -t ext4 "$ALPINE_IMAGE" "$TEST_DIR" 2>&1)
-			MOUNT_RESULT=$?
-			
-			if [ $MOUNT_RESULT -eq 0 ]; then
-				echo "Direct mount test: SUCCESS (unmounting now)"
-				umount "$TEST_DIR" 2>/dev/null || true
-			else
-				echo "Direct mount test: FAILED"
-				echo "Mount error details: $MOUNT_ERROR"
-				
-				# Try to see if it's a loop device issue specifically
-				if echo "$MOUNT_ERROR" | grep -q "loop device"; then
-					echo "This appears to be a loop device allocation problem."
-					echo "Checking which loop devices might be available..."
-					for i in 1 8 9 10 11 12 13 14 15 16; do
-						if [ -e "/dev/loop$i" ]; then
-							if losetup "/dev/loop$i" >/dev/null 2>&1; then
-								echo "/dev/loop$i: BUSY"
-							else
-								echo "/dev/loop$i: potentially available"
-							fi
-						fi
-					done
-				fi
-			fi
-			rmdir "$TEST_DIR" 2>/dev/null || true
-		fi
-		
-		if command -v dmesg >/dev/null 2>&1; then
-			echo ""
-			echo "dmesg tail:"
-			dmesg | tail -n 30 2>/dev/null || true
-		fi
-		_fail_mount
-	fi
-
-	# Create necessary directories in Alpine rootfs if they don't exist
-	mkdir -p /tmp/alpine/dev
-	mkdir -p /tmp/alpine/dev/pts
-	mkdir -p /tmp/alpine/proc
-	mkdir -p /tmp/alpine/sys
-	mkdir -p /tmp/alpine/etc
-
-	# Bind mount virtual filesystems (best-effort, fail cleanly)
-	if ! mount -o bind /dev /tmp/alpine/dev; then
-		echo "ERROR: Failed to bind mount /dev"
-		umount /tmp/alpine 2>/dev/null
-		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
-		rmdir /tmp/alpine 2>/dev/null
-		exit 1
-	fi
-
-	if ! mount -o bind /dev/pts /tmp/alpine/dev/pts; then
-		echo "ERROR: Failed to bind mount /dev/pts"
-		umount /tmp/alpine/dev 2>/dev/null
-		umount /tmp/alpine 2>/dev/null
-		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
-		rmdir /tmp/alpine 2>/dev/null
-		exit 1
-	fi
-
-	if ! mount -o bind /proc /tmp/alpine/proc; then
-		echo "ERROR: Failed to bind mount /proc"
-		umount /tmp/alpine/dev/pts 2>/dev/null
-		umount /tmp/alpine/dev 2>/dev/null
-		umount /tmp/alpine 2>/dev/null
-		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
-		rmdir /tmp/alpine 2>/dev/null
-		exit 1
-	fi
-
-	if ! mount -o bind /sys /tmp/alpine/sys; then
-		echo "ERROR: Failed to bind mount /sys"
-		umount /tmp/alpine/proc 2>/dev/null
-		umount /tmp/alpine/dev/pts 2>/dev/null
-		umount /tmp/alpine/dev 2>/dev/null
-		umount /tmp/alpine 2>/dev/null
-		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
-		rmdir /tmp/alpine 2>/dev/null
-		exit 1
-	fi
-
-	# Copy hosts file if it exists
-	if [ -f /etc/hosts ]; then
-		cp /etc/hosts /tmp/alpine/etc/hosts
-	fi
-
-	chmod a+w /dev/shm 2>/dev/null || true
-
-	# Mount home.ext4 if available
-	if [ -n "$HOME_IMAGE" ] && [ -f "$HOME_IMAGE" ]; then
-		echo "Mounting home filesystem..."
-		mkdir -p /tmp/alpine/home
-		
-		# Try the same approaches that worked for Alpine, in the same order
-		HOME_MOUNTED=false
-		
-		# First try: direct mount -o loop (like Alpine image)
-		if mount -o loop,noatime -t ext4 "$HOME_IMAGE" /tmp/alpine/home 2>/dev/null; then
-			echo "Home filesystem mounted at /tmp/alpine/home via mount -o loop"
-			HOME_MOUNTED=true
-		else
-			# If direct mount failed with loop device issue, use manual loop device allocation
-			echo "Direct home mount failed, trying manual loop device approach..."
-			if command -v losetup >/dev/null 2>&1; then
-				HOME_LOOP=""
-				
-				# Try to find an unused loop device manually (same approach as Alpine)
-				for i in 1 8 9 10 11 12 13 14 15 16; do
-					if [ -e "/dev/loop$i" ] && ! losetup "/dev/loop$i" >/dev/null 2>&1; then
-						# This loop device exists and appears to be free
-						if losetup "/dev/loop$i" "$HOME_IMAGE" 2>/dev/null; then
-							HOME_LOOP="/dev/loop$i"
-							echo "Successfully allocated loop device for home: $HOME_LOOP"
-							break
-						fi
-					fi
-				done
-				
-				# Try to mount using the allocated loop device
-				if [ -n "$HOME_LOOP" ]; then
-					if mount -t ext4 "$HOME_LOOP" /tmp/alpine/home 2>/dev/null; then
-						echo "Home filesystem mounted at /tmp/alpine/home using $HOME_LOOP"
-						HOME_MOUNTED=true
-					else
-						echo "Failed to mount home filesystem using loop device $HOME_LOOP"
-						losetup -d "$HOME_LOOP" 2>/dev/null || true
-					fi
-				else
-					echo "Could not allocate a loop device for home filesystem"
-				fi
-			fi
-		fi
-		
-		if [ "$HOME_MOUNTED" = "false" ]; then
-			echo "WARNING: Failed to mount home filesystem at $HOME_IMAGE"
-			echo "Continuing without separate home filesystem..."
-		fi
-	fi
-fi
-
-
-if [ "$AUTO_GUI" = "true" ]; then
-    echo "Starting Alpine with GUI..."
-    chroot /tmp/alpine /bin/sh -c "gui"
-    echo "GUI session ended"
-else
-    echo "You're now being dropped into Alpine's shell"
-    chroot /tmp/alpine /bin/sh
-    echo "Exited Alpine's shell"
-fi
-
-if [ $ALREADYMOUNTED = "yes" ] ; then
-	echo "Umount is being skipped, as the rootfs was mounted already. Do you want to force stop? (y/N*): "
-	read -r FORCE_STOP
-	if [ "$FORCE_STOP" = "y" ] || [ "$FORCE_STOP" = "Y" ]; then
-		umount_alpine
-	fi
-else
-	echo "Alpine will be unmounted as there was no previous mount. Do you want to keep it running? (y/N*): "
-	read -r KEEP_RUNNING
-	if [ "$KEEP_RUNNING" = "y" ] || [ "$KEEP_RUNNING" = "Y" ]; then
-		echo "Keeping Alpine running"
-	else
-		umount_alpine
-	fi
-fi
 umount_alpine() {
 	echo "You returned from Alpine, killing remaining processes"
 	# Kill processes if they exist, but don't fail if they don't
@@ -547,3 +152,212 @@ umount_alpine() {
 
 	echo "All done, you're now back at your kindle's shell."
 }
+
+# Check for --gui flag
+AUTO_GUI=false
+if [ "$1" = "--gui" ]; then
+    AUTO_GUI=true
+    echo "GUI mode enabled - will start GUI after entering Alpine"
+fi
+
+# Determine the correct Alpine image file to use
+ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
+if [ -f "/mnt/us/alpine/alpine.ext4" ]; then
+	ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
+elif [ -f "/mnt/base-us/alpine/alpine.ext4" ]; then
+	ALPINE_IMAGE="/mnt/base-us/alpine/alpine.ext4"
+else
+	echo "ERROR: Alpine image file not found!"
+	echo "Looked for:"
+	echo "  /mnt/us/alpine.ext4"
+	echo "  /mnt/base-us/alpine/alpine.ext4"
+	echo "Please ensure the Alpine image is properly installed."
+	exit 1
+fi
+
+echo "Using Alpine image: $ALPINE_IMAGE"
+
+# Determine home.ext4 location (same directory as Alpine image)
+ALPINE_DIR="$(dirname "$ALPINE_IMAGE")"
+HOME_IMAGE="$ALPINE_DIR/home.ext4"
+
+# Check if home.ext4 exists, if not ask user to create it
+if [ ! -f "$HOME_IMAGE" ]; then
+	echo ""
+	echo "Home filesystem (home.ext4) not found at: $HOME_IMAGE"
+	printf "Do you want to create it? (y/n): "
+	read -r CREATE_HOME
+	
+	if [ "$CREATE_HOME" = "y" ] || [ "$CREATE_HOME" = "Y" ]; then
+		printf "Enter size for home filesystem in MB (default: 512): "
+		read -r HOME_SIZE
+		
+		# Default to 512MB if no input
+		if [ -z "$HOME_SIZE" ]; then
+			HOME_SIZE=512
+		fi
+		
+		# Validate input is a number
+		if ! echo "$HOME_SIZE" | grep -q '^[0-9][0-9]*$'; then
+			echo "ERROR: Size must be a positive number"
+			exit 1
+		fi
+		
+		echo "Creating home filesystem ($HOME_SIZE MB) at: $HOME_IMAGE"
+		dd if=/dev/zero of="$HOME_IMAGE" bs=1M count="$HOME_SIZE" 2>/dev/null
+		if ! mkfs.ext4 -F "$HOME_IMAGE" >/dev/null 2>&1; then
+			echo "ERROR: Failed to create home filesystem"
+			rm -f "$HOME_IMAGE"
+			exit 1
+		fi
+		# Optimize the filesystem for embedded use
+		tune2fs -i 0 -c 0 -O ^has_journal "$HOME_IMAGE" >/dev/null 2>&1
+		echo "Home filesystem created successfully"
+	else
+		echo "Continuing without home filesystem..."
+		HOME_IMAGE=""
+	fi
+else
+	echo "Using home filesystem: $HOME_IMAGE"
+fi
+
+ALREADYMOUNTED="no"
+if mount | grep -q "/tmp/alpine"; then
+	ALREADYMOUNTED="yes"
+	echo "ATTENTION! Alpine's rootfs is already mounted, thus you will be just dropped into it."
+	echo "BE CAREFUL to leave this shell first, as there will be no umount either (To not disturb the other session)."
+else
+	echo "Mounting Alpine rootfs"
+	
+	if ! mount_image "$ALPINE_IMAGE" /tmp/alpine "Alpine rootfs"; then
+		echo "ERROR: Failed to mount Alpine image at $ALPINE_IMAGE"
+		echo "This could be due to:"
+		echo "  - File is corrupted or not a valid ext4 filesystem"
+		echo "  - No available loop devices or kernel lacks loop support"
+		echo "  - Insufficient permissions"
+		rmdir /tmp/alpine 2>/dev/null
+		exit 1
+	fi
+	echo "Alpine rootfs mounted successfully"
+
+	# Create necessary directories in Alpine rootfs if they don't exist
+	mkdir -p /tmp/alpine/dev
+	mkdir -p /tmp/alpine/dev/pts
+	mkdir -p /tmp/alpine/proc
+	mkdir -p /tmp/alpine/sys
+	mkdir -p /tmp/alpine/etc
+
+	# Bind mount virtual filesystems (best-effort, fail cleanly)
+	if ! mount -o bind /dev /tmp/alpine/dev; then
+		echo "ERROR: Failed to bind mount /dev"
+		umount /tmp/alpine 2>/dev/null
+		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
+		rmdir /tmp/alpine 2>/dev/null
+		exit 1
+	fi
+
+	if ! mount -o bind /dev/pts /tmp/alpine/dev/pts; then
+		echo "ERROR: Failed to bind mount /dev/pts"
+		umount /tmp/alpine/dev 2>/dev/null
+		umount /tmp/alpine 2>/dev/null
+		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
+		rmdir /tmp/alpine 2>/dev/null
+		exit 1
+	fi
+
+	if ! mount -o bind /proc /tmp/alpine/proc; then
+		echo "ERROR: Failed to bind mount /proc"
+		umount /tmp/alpine/dev/pts 2>/dev/null
+		umount /tmp/alpine/dev 2>/dev/null
+		umount /tmp/alpine 2>/dev/null
+		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
+		rmdir /tmp/alpine 2>/dev/null
+		exit 1
+	fi
+
+	if ! mount -o bind /sys /tmp/alpine/sys; then
+		echo "ERROR: Failed to bind mount /sys"
+		umount /tmp/alpine/proc 2>/dev/null
+		umount /tmp/alpine/dev/pts 2>/dev/null
+		umount /tmp/alpine/dev 2>/dev/null
+		umount /tmp/alpine 2>/dev/null
+		[ -n "$LOOP" ] && losetup -d "$LOOP" 2>/dev/null || true
+		rmdir /tmp/alpine 2>/dev/null
+		exit 1
+	fi
+
+	# Copy hosts file if it exists
+	if [ -f /etc/hosts ]; then
+		cp /etc/hosts /tmp/alpine/etc/hosts
+	fi
+
+	chmod a+w /dev/shm 2>/dev/null || true
+
+	# Mount home.ext4 if available
+	if [ -n "$HOME_IMAGE" ] && [ -f "$HOME_IMAGE" ]; then
+		echo "Mounting home filesystem..."
+		
+		# Check if there are existing contents in /home that need to be preserved
+		if [ -d "/tmp/alpine/home" ] && [ "$(ls -A /tmp/alpine/home 2>/dev/null)" ]; then
+			echo "Preserving existing /home contents..."
+			
+			# Create a temporary mount point for the home filesystem
+			TEMP_HOME_MOUNT="/tmp/home_temp_$$"
+			mkdir -p "$TEMP_HOME_MOUNT"
+			
+			# Mount home.ext4 to temporary location
+			if mount_image "$HOME_IMAGE" "$TEMP_HOME_MOUNT" "home filesystem"; then
+				# Copy existing /home contents to the home filesystem
+				cp -a /tmp/alpine/home/* "$TEMP_HOME_MOUNT/" 2>/dev/null || true
+				# Copy hidden files but exclude . and .. directories
+				find /tmp/alpine/home -maxdepth 1 -name ".*" ! -name "." ! -name ".." -exec cp -a {} "$TEMP_HOME_MOUNT/" \; 2>/dev/null || true
+				
+				# Unmount from temporary location
+				umount "$TEMP_HOME_MOUNT" 2>/dev/null
+				rmdir "$TEMP_HOME_MOUNT" 2>/dev/null
+				
+				# Clear the original /home directory safely
+				find /tmp/alpine/home -maxdepth 1 ! -path /tmp/alpine/home -delete 2>/dev/null || true
+			else
+				echo "WARNING: Could not mount home filesystem temporarily"
+				rmdir "$TEMP_HOME_MOUNT" 2>/dev/null
+				echo "WARNING: Could not mount home filesystem, continuing without it"
+			fi
+		fi
+		
+		# Now mount the home filesystem to its final location
+		if mount_image "$HOME_IMAGE" /tmp/alpine/home "home filesystem"; then
+			echo "Home filesystem mounted successfully"
+		else
+			echo "WARNING: Could not mount home filesystem, continuing without it"
+		fi
+	fi
+fi
+
+
+if [ "$AUTO_GUI" = "true" ]; then
+    echo "Starting Alpine with GUI..."
+    chroot /tmp/alpine /bin/sh -c "gui"
+    echo "GUI session ended"
+else
+    echo "You're now being dropped into Alpine's shell"
+    chroot /tmp/alpine /bin/sh
+    echo "Exited Alpine's shell"
+fi
+
+if [ $ALREADYMOUNTED = "yes" ] ; then
+	echo "Umount is being skipped, as the rootfs was mounted already. Do you want to force stop? (y/N*): "
+	read -r FORCE_STOP
+	if [ "$FORCE_STOP" = "y" ] || [ "$FORCE_STOP" = "Y" ]; then
+		umount_alpine
+	fi
+else
+	echo "Alpine will be unmounted as there was no previous mount. Do you want to keep it running? (y/N*): "
+	read -r KEEP_RUNNING
+	if [ "$KEEP_RUNNING" = "y" ] || [ "$KEEP_RUNNING" = "Y" ]; then
+		echo "Keeping Alpine running"
+	else
+		umount_alpine
+	fi
+fi
+

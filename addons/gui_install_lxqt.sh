@@ -101,6 +101,6 @@ echo ""
 echo "User credentials: alpine / alpine"
 
 # Copy the gui script
-cp ./addons/gui_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_lxqt"
-chmod +x "$MOUNT_POINT/usr/local/bin/gui_lxqt"
+cp ./addons/gui_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui"
 echo "Copied gui script to image."

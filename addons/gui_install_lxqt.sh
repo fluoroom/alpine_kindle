@@ -99,3 +99,8 @@ echo "GUI packages installed and configured for Xephyr environment."
 echo "Use the 'gui' script to start the desktop environment."
 echo ""
 echo "User credentials: alpine / alpine"
+
+# Copy the gui script
+cp ./addons/gui_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_lxqt"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_lxqt"
+echo "Copied gui script to image."

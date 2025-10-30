@@ -22,9 +22,9 @@ else
 fi
 
 # Grab the prebuilt minirootfs
-wget "$REPO/latest-stable/releases/$ARCH/latest-releases.yaml"
+wget "$REPO/edge/releases/$ARCH/latest-releases.yaml"
 MINIROOTFS_FILE=$(grep "file: alpine-minirootfs-.*-$ARCH.tar.gz" latest-releases.yaml | awk '{print $2}')
-wget "$REPO/latest-stable/releases/$ARCH/$MINIROOTFS_FILE" -O minirootfs.tar.gz
+wget "$REPO/edge/releases/$ARCH/$MINIROOTFS_FILE" -O minirootfs.tar.gz
 
 # Prepare the disk image
 dd if=/dev/zero of="$IMAGE" bs=1M count="$IMAGESIZE"
@@ -77,10 +77,7 @@ if [ -f "./customize_image.sh" ]; then
   echo "Removed qemu-arm-static from host."
 fi
 
-# Copy the gui script
-cp ./addons/gui.sh "$MOUNT_POINT/usr/local/bin/gui"
-chmod +x "$MOUNT_POINT/usr/local/bin/gui"
-echo "Copied gui script to image."
+
 
 # Unmount the image
 sync

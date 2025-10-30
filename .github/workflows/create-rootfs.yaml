@@ -3,7 +3,7 @@ name: Create Alpine rootfs images
 on:
   push:
     branches:
-      - pw6
+      - pw6_sxmo
   workflow_dispatch:
 
 jobs:

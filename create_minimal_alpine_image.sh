@@ -45,7 +45,7 @@ mkdir ${MOUNT_POINT}/run/dbus
 echo "Preconfig done."
 
 #Copy the GUI installer
-cp ./addons/gui_install.sh "$MOUNT_POINT/usr/local/bin/gui_install"
+cp ./addons/gui_install_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_install"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install"
 echo "Copied GUI installer to image."
 

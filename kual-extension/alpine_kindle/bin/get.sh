@@ -2,12 +2,11 @@
 
 MACHINE_ARCH=$(uname -m)
 
-# if [ "$MACHINE_ARCH" = "armv7l" ]; then
-#     IMAGE_ARCH="armhf"
-# else
-#     IMAGE_ARCH=$MACHINE_ARCH
-# fi
-IMAGE_ARCH="armv7"
+if [ "$MACHINE_ARCH" = "armv7l" ]; then
+    IMAGE_ARCH="armhf"
+else
+    IMAGE_ARCH=$MACHINE_ARCH
+fi
 
 if [ -f /mnt/us/alpine/alpine.ext4 ] || [ -f /mnt/us/alpine/alpine.sh ] || [ -f /mnt/us/alpine/alpine.conf ]; then
     echo "Alpine Linux appears to already exist."

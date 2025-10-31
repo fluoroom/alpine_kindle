@@ -8,9 +8,6 @@ export BASE_GUI_PACKAGES="
     winput
     dbus-x11
     dbus
-    sudo
-    bash
-    nano
     ttf-dejavu
     onboard
     dillo

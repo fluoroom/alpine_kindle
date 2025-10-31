@@ -1,7 +1,7 @@
 {
     "items": [
         {
-            "name": "Alpine Linux (no kterm!)",
+            "name": "Alpine Linux PW6 (no kterm!)",
             "if": "\"kterm\" -ext!",
             "items": [
                 {
@@ -11,11 +11,11 @@
             ]
         },
         {
-            "name": "Alpine Linux",
+            "name": "Alpine Linux PW6",
             "if": "\"kterm\" -ext",
             "items": [
                 {
-                    "name": "Deploy newest release of Alpine Linux (PW6) for Kindle",
+                    "name": "Deploy newest release (clean install)",
                     "action": "sh bin/kterm_run.sh get.sh",
                     "exitmenu": false
                 },
@@ -25,8 +25,23 @@
                     "exitmenu": false
                 },
                 {
-                    "name": "Start GUI",
-                    "action": "sh bin/kterm_run.sh gui.sh",
+                    "name": "Start XFCE GUI session",
+                    "action": "sh xfce.sh",
+                    "exitmenu": false
+                },
+                {
+                    "name": "Start LXQT GUI session",
+                    "action": "sh lxqt.sh",
+                    "exitmenu": false
+                },
+                {
+                    "name": "Start MATE GUI session",
+                    "action": "sh mate.sh",
+                    "exitmenu": false
+                },
+                {
+                    "name": "GUI Installer",
+                    "action": "sh bin/kterm_run.sh gui_installer.sh",
                     "exitmenu": false
                 },
                 {

@@ -153,12 +153,30 @@ umount_alpine() {
 	echo "All done, you're now back at your kindle's shell."
 }
 
-# Check for --gui flag
+# Check for --gui flags
 AUTO_GUI=false
-if [ "$1" = "--gui" ]; then
-    AUTO_GUI=true
-    echo "GUI mode enabled - will start GUI after entering Alpine"
-fi
+GUI_TYPE=""
+
+case "$1" in
+    --xfce)
+        AUTO_GUI=true
+        GUI_TYPE="xfce"
+        echo "GUI mode enabled - will start XFCE after entering Alpine"
+        ;;
+    --lxqt)
+        AUTO_GUI=true
+        GUI_TYPE="lxqt"
+        echo "GUI mode enabled - will start LXQT after entering Alpine"
+        ;;
+	--mate)
+		AUTO_GUI=true
+		GUI_TYPE="mate"
+		echo "GUI mode enabled - will start MATE after entering Alpine"
+		;;
+	*)
+		AUTO_GUI=false
+		;;
+esac
 
 # Determine the correct Alpine image file to use
 ALPINE_IMAGE="/mnt/us/alpine/alpine.ext4"
@@ -336,8 +354,8 @@ fi
 
 
 if [ "$AUTO_GUI" = "true" ]; then
-    echo "Starting Alpine with GUI..."
-    chroot /tmp/alpine /bin/sh -c "gui"
+    echo "Starting Alpine with $GUI_TYPE GUI..."
+    chroot /tmp/alpine /bin/sh -c "gui_$GUI_TYPE"
     echo "GUI session ended"
 else
     echo "You're now being dropped into Alpine's shell"

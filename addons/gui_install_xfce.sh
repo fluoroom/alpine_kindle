@@ -4,26 +4,22 @@
 echo "Updating package repositories..."
 apk update
 
-# Define essential packages for XFCE desktop on Kindle
-PACKAGES="
-    xorg-server-xephyr
-    xinit
-    xwininfo
+# Source base GUI packages
+. /usr/local/bin/base_gui_packages.sh
+
+# Define GUI-specific packages
+GUI_PACKAGES="
     xfce4
     xfce4-terminal
     xfce4-session
     xfwm4
     xfdesktop
     xfce4-panel
-    dbus
-    sudo
-    bash
-    nano
-    ttf-dejavu
-    onboard
-    dillo
-    vimb
+    thunar
 "
+
+# Combine base and GUI-specific packages
+PACKAGES="$BASE_GUI_PACKAGES $GUI_PACKAGES"
 
 echo "Installing XFCE desktop environment..."
 echo "Package list: $PACKAGES"
@@ -68,22 +64,11 @@ ALPINE_HOME="/home/alpine"
 if [ -d "$ALPINE_HOME" ]; then
     echo "Setting up XFCE configuration..."
     
-    # Create .xinitrc for the alpine user (for use with startx)
-    cat > "$ALPINE_HOME/.xinitrc" << 'EOF'
-#!/bin/sh
-# X11 startup script for XFCE on Kindle
-
-# Start XFCE session (dbus will be handled by the parent script)
-exec xfce4-session
-EOF
-    
-    chmod +x "$ALPINE_HOME/.xinitrc"
-    
     # Create basic XFCE config directory
     mkdir -p "$ALPINE_HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
     
     # Set ownership to alpine user
-    chown -R alpine:alpine "$ALPINE_HOME/.xinitrc" "$ALPINE_HOME/.config"
+    chown -R alpine:alpine "$ALPINE_HOME/.config"
     
     echo "✓ XFCE configuration created"
 fi

@@ -11,7 +11,6 @@ MOUNT_POINT="/mnt/alpine"
 IMAGE="./alpine.ext4"
 IMAGESIZE=2048 # Megabytes
 
-BUILDGUI=true
 
 if [ -n "$1" ]; then
   ARCH="$1"
@@ -44,20 +43,25 @@ echo "nameserver 1.1.1.1" > "$MOUNT_POINT/etc/resolv.conf"
 mkdir ${MOUNT_POINT}/run/dbus
 echo "Preconfig done."
 
-#Copy the GUI installer
-cp ./addons/gui_install_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_install"
-chmod +x "$MOUNT_POINT/usr/local/bin/gui_install"
-echo "Copied GUI installer to image."
+#Copy the GUI installers
+cp ./addons/gui_install_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_install_lxqt"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_lxqt"
+echo "Copied LXQt installer to image."
+
+cp ./addons/gui_install_xfce.sh "$MOUNT_POINT/usr/local/bin/gui_install_xfce"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_xfce"
+echo "Copied XFCE installer to image."
+
+cp ./addons/gui_install_mate.sh "$MOUNT_POINT/usr/local/bin/gui_install_mate"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_mate"
+echo "Copied MATE installer to image."
 
 # Copy qemu-[arch] binaries
   cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"
   echo "Copied qemu-arm-static to image."
 
-#Build GUI now 
-if [ "$BUILDGUI" = true ] ; then
-    echo "Starting GUI installation inside chroot..."
-    chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /usr/local/bin/gui_install
-fi
+
+
 
 # check if the customize_image.sh exists
 if [ -f "./customize_image.sh" ]; then
@@ -73,10 +77,9 @@ if [ -f "./customize_image.sh" ]; then
 
   rm "$MOUNT_POINT/root/customize_image.sh"
   echo "Removed customize_image.sh from image."
-  rm /usr/bin/qemu-arm-static
-  echo "Removed qemu-arm-static from host."
+  rm "$MOUNT_POINT/usr/bin/qemu-arm-static"
+  echo "Removed qemu-arm-static from image."
 fi
-
 
 
 # Unmount the image

@@ -156,7 +156,6 @@ umount_alpine() {
 # Check for --gui flags
 AUTO_GUI=false
 GUI_TYPE=""
-
 case "$1" in
     --xfce)
         AUTO_GUI=true
@@ -172,6 +171,11 @@ case "$1" in
 		AUTO_GUI=true
 		GUI_TYPE="mate"
 		echo "GUI mode enabled - will start MATE after entering Alpine"
+		;;
+	--gui-installer)
+		AUTO_GUI=false
+		GUI_TYPE="installer"
+		echo "Entering GUI Installer"
 		;;
 	*)
 		AUTO_GUI=false
@@ -351,6 +355,8 @@ else
 		fi
 	fi
 fi
+
+if []
 
 
 if [ "$AUTO_GUI" = "true" ]; then

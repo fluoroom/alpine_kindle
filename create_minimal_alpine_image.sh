@@ -44,6 +44,10 @@ mkdir ${MOUNT_POINT}/run/dbus
 echo "Preconfig done."
 
 #Copy the GUI installers
+cp ./addons/base_gui_packages.sh "$MOUNT_POINT/usr/local/bin/base_gui_packages.sh"
+chmod +x "$MOUNT_POINT/usr/local/bin/base_gui_packages.sh"
+echo "Copied base GUI packages list to image."
+
 cp ./addons/gui_install_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_install_lxqt"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_lxqt"
 echo "Copied LXQt installer to image."
@@ -55,6 +59,10 @@ echo "Copied XFCE installer to image."
 cp ./addons/gui_install_mate.sh "$MOUNT_POINT/usr/local/bin/gui_install_mate"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_mate"
 echo "Copied MATE installer to image."
+
+cp  ./addons/gui_installer.sh "$MOUNT_POINT/usr/local/bin/gui_installer"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_installer"
+echo "Copied GUI installer script to image."
 
 # Copy qemu-[arch] binaries
   cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"

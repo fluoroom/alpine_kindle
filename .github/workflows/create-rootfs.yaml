@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        architecture: [armhf] # ,armv7
+        architecture: [armhf, armv7]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

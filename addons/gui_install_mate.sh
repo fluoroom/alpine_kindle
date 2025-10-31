@@ -21,11 +21,7 @@ GUI_PACKAGES="
     mate-control-center
     mate-power-manager
     mate-screensaver
-    mate-system-monitor
     mate-notification-daemon
-    pnmixer
-    lightdm
-    lightdm-gtk-greeter
 "
 
 # Combine base and GUI-specific packages

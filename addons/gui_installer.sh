@@ -5,11 +5,13 @@ if [ "$CONFIRM" != "y" ] ; then
     echo "Installation cancelled."
     exit 0
 fi
-read -p "Choose environment to install - XFCE (x) MATE (m): " ENVCHOICE
+read -p "Choose environment to install - XFCE (x) MATE (m) LXQT (l): " ENVCHOICE
 if [ "$ENVCHOICE" = "x" ] ; then
     GUI_TYPE="xfce"
 elif [ "$ENVCHOICE" = "m" ] ; then
     GUI_TYPE="mate"
+elif [ "$ENVCHOICE" = "l" ] ; then
+    GUI_TYPE="lxqt"
 else
     echo "Invalid choice. Installation cancelled."
     exit 1

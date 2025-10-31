@@ -26,17 +26,17 @@
                 },
                 {
                     "name": "Start XFCE GUI session",
-                    "action": "sh xfce.sh",
+                    "action": "sh bin/kterm_run.sh xfce.sh",
                     "exitmenu": false
                 },
                 {
                     "name": "Start LXQT GUI session",
-                    "action": "sh lxqt.sh",
+                    "action": "sh bin/kterm_run.sh lxqt.sh",
                     "exitmenu": false
                 },
                 {
                     "name": "Start MATE GUI session",
-                    "action": "sh mate.sh",
+                    "action": "sh bin/kterm_run.sh mate.sh",
                     "exitmenu": false
                 },
                 {

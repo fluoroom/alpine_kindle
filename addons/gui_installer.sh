@@ -19,7 +19,7 @@ fi
 echo ""
 echo "=== Starting $GUI_TYPE Installation for Kindle ==="
 echo ""
-/usr/local/bin/gui_install_$GUI_TYPE.sh
+/usr/local/bin/gui_install_$GUI_TYPE
 echo ""
 echo "=== $GUI_TYPE Installation Script Finished ==="
 echo ""

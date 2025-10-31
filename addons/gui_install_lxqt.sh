@@ -38,7 +38,7 @@ echo "Installing LXQt desktop environment..."
 echo "Package list: $PACKAGES"
 
 # Install packages (apk will automatically skip already installed ones)
-if apk add --no-cache $PACKAGES; then
+if apk add $PACKAGES; then
     echo "✓ Successfully installed LXQt desktop packages"
 else
     echo "✗ Some packages failed to install. Trying individual installation..."

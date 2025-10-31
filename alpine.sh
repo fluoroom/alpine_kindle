@@ -356,8 +356,6 @@ else
 	fi
 fi
 
-if []
-
 
 if [ "$AUTO_GUI" = "true" ]; then
     echo "Starting Alpine with $GUI_TYPE GUI..."

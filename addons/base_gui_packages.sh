@@ -1,0 +1,17 @@
+#!/bin/sh
+
+export BASE_GUI_PACKAGES="
+    xorg-server-xephyr
+    xinit
+    xwininfo
+    xdotool
+    winput
+    dbus-x11
+    dbus
+    sudo
+    bash
+    nano
+    ttf-dejavu
+    onboard
+    dillo
+    vimb"

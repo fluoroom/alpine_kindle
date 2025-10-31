@@ -48,10 +48,6 @@ cp ./addons/base_gui_packages.sh "$MOUNT_POINT/usr/local/bin/base_gui_packages.s
 chmod +x "$MOUNT_POINT/usr/local/bin/base_gui_packages.sh"
 echo "Copied base GUI packages list to image."
 
-cp ./addons/gui_install_lxqt.sh "$MOUNT_POINT/usr/local/bin/gui_install_lxqt"
-chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_lxqt"
-echo "Copied LXQt installer to image."
-
 cp ./addons/gui_install_xfce.sh "$MOUNT_POINT/usr/local/bin/gui_install_xfce"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_xfce"
 echo "Copied XFCE installer to image."

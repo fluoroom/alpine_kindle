@@ -173,7 +173,7 @@ case "$1" in
 		echo "GUI mode enabled - will start MATE after entering Alpine"
 		;;
 	--gui-installer)
-		AUTO_GUI=false
+		AUTO_GUI=true
 		GUI_TYPE="installer"
 		echo "Entering GUI Installer"
 		;;

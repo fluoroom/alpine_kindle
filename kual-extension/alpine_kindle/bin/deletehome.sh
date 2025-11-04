@@ -1,5 +1,5 @@
 #!/bin/sh
-read -p "Are you sure you want to delete the HOME filesystem for Alpine Linux? This action cannot be undone. (y/N): " CONFIRM
+read -p "Are you sure you want to delete the HOME filesystem for Alpine Linux? (User data and settings) This action cannot be undone. (y/N): " CONFIRM
 if [ "$CONFIRM" != "y" ] ; then
     echo "Deletion cancelled."
     exit 0
@@ -15,10 +15,6 @@ fi
 if [ -f /mnt/us/alpine/home.ext4 ]; then
     echo "Deleting /mnt/us/alpine/home.ext4"
     rm /mnt/us/alpine/home.ext4
-fi
-if [ -f /mnt/us/alpine/home.ext3 ]; then
-    echo "Deleting /mnt/us/alpine/home.ext3"
-    rm /mnt/us/alpine/home.ext3
 fi
 
 read -p "Alpine Linux HOME has been deleted. Press any key to continue..."

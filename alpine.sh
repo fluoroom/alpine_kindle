@@ -162,16 +162,6 @@ case "$1" in
         GUI_TYPE="xfce"
         echo "GUI mode enabled - will start XFCE after entering Alpine"
         ;;
-	--mate)
-		AUTO_GUI=true
-		GUI_TYPE="mate"
-		echo "GUI mode enabled - will start MATE after entering Alpine"
-		;;
-	--lxqt)
-		AUTO_GUI=true
-		GUI_TYPE="lxqt"
-		echo "GUI mode enabled - will start LXQT after entering Alpine"
-		;;
 	--gui-installer)
 		AUTO_GUI=true
 		GUI_TYPE="installer"

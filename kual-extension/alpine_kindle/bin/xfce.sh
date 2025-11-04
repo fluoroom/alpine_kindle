@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sh /mnt/us/alpine/alpine.sh --xfce --stop-framework
+sh /mnt/us/alpine/alpine.sh --xfce 

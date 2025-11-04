@@ -30,16 +30,6 @@
                     "exitmenu": false
                 },
                 {
-                    "name": "Start LXQT GUI session",
-                    "action": "sh bin/kterm_run.sh lxqt.sh",
-                    "exitmenu": false
-                },
-                {
-                    "name": "Start MATE GUI session",
-                    "action": "sh bin/kterm_run.sh mate.sh",
-                    "exitmenu": false
-                },
-                {
                     "name": "GUI Installer",
                     "action": "sh bin/kterm_run.sh gui_installer.sh",
                     "exitmenu": false

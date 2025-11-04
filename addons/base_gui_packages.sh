@@ -10,5 +10,6 @@ export BASE_GUI_PACKAGES="
     dbus
     ttf-dejavu
     onboard
+    touchegg
     dillo
     vimb"

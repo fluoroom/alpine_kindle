@@ -5,7 +5,6 @@ export BASE_GUI_PACKAGES="
     xinit
     xwininfo
     xdotool
-    winput
     dbus-x11
     dbus
     ttf-dejavu

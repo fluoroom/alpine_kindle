@@ -33,7 +33,7 @@ KUAL has an option to show the USBNetwork status - always check it before connec
 1. **Jailbroken Kindle** - See [kindlemodding.org](https://kindlemodding.org) for jailbreaking instructions for your specific model and firmware
 2. **KUAL Launcher** - See [Post Jailbreak kindlemodding.org](https://kindlemodding.org/jailbreaking/post-jailbreak/installing-kual-mrpi/)
 3. **Kterm** - Download from [bfabiszewski's GitHub](https://github.com/bfabiszewski/kterm/releases) (required for running Alpine)
-4. **USBNetwork** required if you'll be using your USB cable while running Alpine. Donwload from [MobileRead](https://www.mobileread.com/forums/showthread.php?t=369990)
+4. **USBNetwork** required if you'll be using your USB cable while running Alpine. Download from [MobileRead](https://www.mobileread.com/forums/showthread.php?t=369990)
 5. **USBNetwork** or **KOReader** for SSH access (optional but recommended). [Download KOReader](https://github.com/koreader/koreader/releases)
 
 ### Installation Steps

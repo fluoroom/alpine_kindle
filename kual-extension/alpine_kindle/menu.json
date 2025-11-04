@@ -20,6 +20,11 @@
                     "exitmenu": false
                 },
                 {
+                    "name": "Deploy newest nightly build (clean install)",
+                    "action": "sh bin/kterm_run.sh get.sh --nightly",
+                    "exitmenu": false
+                },
+                {
                     "name": "Drop into Alpine Linux shell",
                     "action": "sh bin/kterm_run.sh start.sh",
                     "exitmenu": false

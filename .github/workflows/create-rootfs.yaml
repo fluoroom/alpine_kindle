@@ -1,9 +1,8 @@
 name: Create Alpine rootfs images
 
 on:
-  push:
-    branches:
-      - pw6
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:

@@ -30,10 +30,11 @@ KUAL has an option to show the USBNetwork status - always check it before connec
 ## Quick Start
 
 ### Prerequisites
-1. **Jailbroken Kindle** - See [MobileRead forums](https://www.mobileread.com/forums/forumdisplay.php?f=150) and [MobileRead wiki](https://wiki.mobileread.com/wiki/Kindle_Touch_Hacking) for jailbreaking instructions for your specific model and firmware
-2. **KUAL Launcher** - Download from [MobileRead](https://www.mobileread.com/forums/showthread.php?t=203326)
-3. **Kterm** - Download from [fabiszewski.net](https://www.fabiszewski.net/kindle-terminal/) (required for running Alpine)
-4. **USBNetworking** (optional but recommended) - See [MobileRead wiki](https://wiki.mobileread.com/wiki/Kindle_Touch_Hacking#USB_Networking) for SSH access
+1. **Jailbroken Kindle** - See [kindlemodding.org](https://kindlemodding.org) for jailbreaking instructions for your specific model and firmware
+2. **KUAL Launcher** - See [Post Jailbreak kindlemodding.org](https://kindlemodding.org/jailbreaking/post-jailbreak/installing-kual-mrpi/)
+3. **Kterm** - Download from [bfabiszewski's GitHub](https://github.com/bfabiszewski/kterm/releases) (required for running Alpine)
+4. **USBNetwork** required if you'll be using your USB cable while running Alpine. Donwload from [MobileRead](https://www.mobileread.com/forums/showthread.php?t=369990)
+5. **USBNetwork** or **KOReader** for SSH access (optional but recommended). [Download KOReader](https://github.com/koreader/koreader/releases)
 
 ### Installation Steps
 
@@ -132,33 +133,6 @@ This repository uses GitHub Actions to automatically build Alpine rootfs images.
 - Manual workflow dispatch
 
 Built images are available as artifacts from the Actions tab.
-
-### Project Structure
-
-```
-alpine_kindle/
-├── alpine.sh                      # Main mounting script
-├── alpine.conf                    # Upstart configuration (legacy)
-├── create_minimal_alpine_image.sh # Image creation script
-├── customize_image.sh             # Image customization
-├── addons/
-│   ├── base_gui_packages.sh      # Base GUI package list
-│   ├── gui_installer.sh          # GUI installation wrapper
-│   ├── gui_install_xfce.sh       # XFCE installer
-│   └── gui_xfce.sh               # XFCE startup script
-└── kual-extension/
-    └── alpine_kindle/
-        ├── menu.json              # KUAL menu definition
-        └── bin/                   # KUAL action scripts
-            ├── get.sh            # Download and deploy Alpine
-            ├── start.sh          # Start Alpine shell
-            ├── stop.sh           # Stop and unmount Alpine
-            ├── xfce.sh           # Start XFCE
-            ├── gui_installer.sh  # GUI installer launcher
-            ├── delete.sh         # Delete root filesystem
-            ├── deletehome.sh     # Delete home partition
-            └── update.sh         # Update KUAL extension
-```
 
 ## Contributing
 

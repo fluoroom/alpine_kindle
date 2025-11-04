@@ -45,6 +45,15 @@ if [ ! -d "$src" ]; then
   exit 1
 fi
 
+#Replace Alpine Shortcut
+if [ -f $src/bin/Alpine_shortcut.sh ]; then
+    echo "Updating Alpine Shortcut..."
+    rm /mnt/us/documents/Alpine.sh
+    cp $src/bin/Alpine_shortcut.sh /mnt/us/documents/Alpine.sh
+    chmod +x /mnt/us/documents/Alpine.sh
+    rm $src/bin/Alpine_shortcut.sh
+fi
+
 # Replace target directory
 TARGET=/mnt/us/extensions/alpine_kindle
 echo "Replacing $TARGET with $src..."

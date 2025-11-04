@@ -8,12 +8,12 @@ rm -rf "$TMP"
 mkdir -p "$TMP"
 cd "$TMP"
 
-# Get latest release URL
+# Get latest release asset URL (the actual uploaded ZIP file)
 echo "Fetching latest release..."
 if command -v curl >/dev/null 2>&1; then
-  URL=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep "zipball_url" | cut -d '"' -f 4)
+  URL=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep "browser_download_url" | grep "\.zip" | head -n1 | cut -d '"' -f 4)
 elif command -v wget >/dev/null 2>&1; then
-  URL=$(wget -qO- "https://api.github.com/repos/$REPO/releases/latest" | grep "zipball_url" | cut -d '"' -f 4)
+  URL=$(wget -qO- "https://api.github.com/repos/$REPO/releases/latest" | grep "browser_download_url" | grep "\.zip" | head -n1 | cut -d '"' -f 4)
 else
   echo "Error: neither curl nor wget found" >&2
   exit 1
@@ -37,19 +37,11 @@ fi
 echo "Unzipping..."
 unzip -o pw6.zip >/dev/null
 
-# Find extracted directory (GitHub creates fluoroom-alpine_kindle-* folders)
-extracted_dir=$(ls -d fluoroom-alpine_kindle-* 2>/dev/null | head -n1)
-if [ -z "$extracted_dir" ]; then
-  echo "Error: Could not find extracted directory" >&2
-  ls -la
-  exit 1
-fi
-
-# Verify source directory exists (alpine_kindle is now at root of zip)
-src="$extracted_dir/alpine_kindle"
+# The release ZIP should contain alpine_kindle directory directly
+src="alpine_kindle"
 if [ ! -d "$src" ]; then
   echo "Error: Source directory not found: $src" >&2
-  ls -la "$extracted_dir"
+  ls -la
   exit 1
 fi
 
@@ -63,7 +55,6 @@ fi
 cp -a "$src" "$TARGET"
 
 echo "Update complete!"
-ls -la "$TARGET"
 
 # Cleanup
 cd /

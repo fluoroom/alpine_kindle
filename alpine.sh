@@ -346,6 +346,37 @@ else
 	fi
 fi
 
+timezone_selection() {
+	# Check if localtime exists and is a valid symlink
+	if [ -e /tmp/alpine/etc/localtime ] || [ -L /tmp/alpine/etc/localtime ]; then
+		echo "Timezone already configured, skipping selection."
+		return
+	fi
+	
+	echo "Select your timezone:"
+	echo "Available timezones:"
+	ls /tmp/alpine/usr/share/zoneinfo/Etc/** | nl
+	printf "Enter the number corresponding to your timezone: "
+	read -r selection
+	
+	# Get the full timezone path from the selection number
+	tz_full=$(ls /tmp/alpine/usr/share/zoneinfo/Etc/** | sed -n "${selection}p")
+	
+	# Extract only the relative path from zoneinfo (e.g., "Etc/UTC")
+	tz=$(echo "$tz_full" | sed 's|.*/zoneinfo/||')
+	
+	if [ -n "$tz" ]; then
+		echo "You selected timezone: $tz"
+		read -p "Press any key to continue..."
+		chroot /tmp/alpine /bin/sh -c "rm -f /etc/localtime && ln -s /usr/share/zoneinfo/$tz /etc/localtime"
+	else
+		echo "Invalid selection, please try again."
+		timezone_selection
+	fi
+}
+
+timezone_selection
+
 
 if [ "$AUTO_GUI" = "true" ]; then
     echo "Starting Alpine with $GUI_TYPE GUI..."

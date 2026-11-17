@@ -384,7 +384,11 @@ if [ "$AUTO_GUI" = "true" ]; then
     echo "GUI session ended"
 else
     echo "You're now being dropped into Alpine's shell"
-    chroot /tmp/alpine /bin/sh
+    if [ -x /tmp/alpine/usr/bin/fish ]; then
+        chroot /tmp/alpine /usr/bin/fish -l
+    else
+        chroot /tmp/alpine /bin/sh
+    fi
     echo "Exited Alpine's shell"
 fi
 

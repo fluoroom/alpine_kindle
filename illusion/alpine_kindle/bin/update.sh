@@ -15,7 +15,7 @@ if [ "$1" != "--detached" ]; then
     exec sh /tmp/alpine_kindle_update.sh --detached
 fi
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 if [ -f "$SCRIPT_DIR/common.sh" ]; then
     . "$SCRIPT_DIR/common.sh"
 else
@@ -29,7 +29,7 @@ NEW_DIR="$DOCS_DIR/.alpine_kindle.new"
 OLD_DIR="$DOCS_DIR/.alpine_kindle.old"
 NEW_SCRIPT="$DOCS_DIR/.alpine_kindle.sh.new"
 
-begin_action "Update Alpine Linux app" || exit 1
+begin_action "Update Alpine Manager" || exit 1
 trim_log
 
 rm -rf "$TMP_DIR" "$NEW_DIR" 2>/dev/null || true
@@ -50,7 +50,9 @@ else
 fi
 
 if [ -n "$RELEASE_JSON" ]; then
-    ZIP_URL="$(printf '%s\n' "$RELEASE_JSON" | grep '"browser_download_url"' | grep '\.zip"' | head -n 1 | cut -d '"' -f 4)"
+    ZIP_URL="$(printf '%s\n' "$RELEASE_JSON" | \
+        sed -n 's/.*"browser_download_url"[[:space:]]*:[[:space:]]*"\([^"]*\.zip\)".*/\1/p' | \
+        head -n 1)"
 fi
 
 if [ -z "$ZIP_URL" ]; then
@@ -124,6 +126,17 @@ if cp -a "$APP_DIR/." "$MESQUITE_DIR/" 2>/dev/null; then
 else
     log "WARNING: Could not refresh $MESQUITE_DIR."
 fi
+
+# Keep the deployed mount script in sync with the launcher.
+if [ -f "$DATA_DIR/alpine.ext4" ] && [ -f "$APP_DIR/bin/alpine.sh" ]; then
+    if cp "$APP_DIR/bin/alpine.sh" "$DATA_DIR/alpine.sh" 2>/dev/null; then
+        log "Updated /mnt/us/alpine/alpine.sh"
+    else
+        log "WARNING: could not update /mnt/us/alpine/alpine.sh"
+    fi
+fi
+
+set_scriptlet_name
 
 probe_status
 status_set app_version "$NEW_VERSION"

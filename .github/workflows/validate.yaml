@@ -21,7 +21,7 @@ jobs:
       - name: Check shell syntax
         run: |
           set -e
-          for f in illusion/alpine_kindle.sh illusion/alpine_kindle/bin/*.sh tools/*.sh; do
+          for f in alpine.sh illusion/alpine_kindle.sh illusion/alpine_kindle/bin/*.sh tools/*.sh; do
             echo "sh -n $f"
             sh -n "$f"
           done
@@ -35,4 +35,8 @@ jobs:
           xmllint --html --noout illusion/alpine_kindle/index.html
 
       - name: Build release layout
-        run: sh tools/package.sh /tmp/alpine_kindle-test.zip
+        run: |
+          sh tools/package.sh /tmp/alpine_kindle-test.zip
+          unzip -l /tmp/alpine_kindle-test.zip | grep -q 'alpine_kindle/bin/alpine.sh'
+          unzip -l /tmp/alpine_kindle-test.zip | grep -q 'alpine_kindle.sh'
+          unzip -l /tmp/alpine_kindle-test.zip | grep -q 'alpine_kindle/config.xml'

@@ -3,7 +3,7 @@
 # This file is sourced by the launcher scripts; do not run it directly.
 
 APP_ID="com.fluoroom.alpinekindle"
-APP_VERSION="2.0.0"
+APP_VERSION="2.1.0"
 
 # Overridable so the scripts can be exercised off-device.
 APP_DIR="${ALPINE_APP_DIR:-/mnt/us/documents/alpine_kindle}"
@@ -12,11 +12,94 @@ STATE_DIR="$DATA_DIR/illusion"
 STATUS_FILE="$STATE_DIR/status.txt"
 LOG_FILE="$STATE_DIR/action.log"
 LOCK_DIR="${ALPINE_LOCK_DIR:-/tmp/alpine_kindle.lock}"
-KTERM="${ALPINE_KTERM:-/mnt/us/extensions/kterm/bin/kterm}"
 KTERM_OPTS="-k 1 -o U -s 7"
+SCRIPTLET="${ALPINE_SCRIPTLET:-/mnt/us/documents/alpine_kindle.sh}"
 
 ACTION_NAME=""
 ACTION_DONE=0
+
+# kterm can live in the classic extensions folder or be installed by KPM.
+find_kterm() {
+    if [ -n "$ALPINE_KTERM" ] && [ -x "$ALPINE_KTERM" ]; then
+        echo "$ALPINE_KTERM"
+        return 0
+    fi
+    for _candidate in \
+        /mnt/us/extensions/kterm/bin/kterm \
+        /mnt/us/kterm/bin/kterm \
+        /mnt/us/kpm/packages/kterm/bin/kterm \
+        /mnt/us/kpm/packages/bin/kterm \
+        /mnt/us/kpm/packages/kterm/kterm
+    do
+        if [ -x "$_candidate" ]; then
+            echo "$_candidate"
+            return 0
+        fi
+    done
+    _which="$(command -v kterm 2>/dev/null)"
+    if [ -n "$_which" ] && [ -x "$_which" ]; then
+        echo "$_which"
+        return 0
+    fi
+    return 1
+}
+
+KTERM="$(find_kterm 2>/dev/null || true)"
+
+# KPM's kterm package ships a launcher that sets TERM/TERMINFO and the
+# correct keyboard layout. Prefer it when available.
+find_kterm_launcher() {
+    for _candidate in \
+        /mnt/us/kpm/packages/kterm/launch.sh \
+        /mnt/us/kpm/packages/bin/kterm-launch
+    do
+        if [ -f "$_candidate" ]; then
+            echo "$_candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+find_kpm() {
+    if command -v kpm >/dev/null 2>&1; then
+        command -v kpm
+        return 0
+    fi
+    for _candidate in /usr/local/bin/kpm /mnt/us/kpm/packages/bin/kpm; do
+        if [ -x "$_candidate" ]; then
+            echo "$_candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# The scriptlet is named "alpine installer" until a root image exists, then
+# "alpine" (and the app itself is "Alpine Manager").
+set_scriptlet_name() {
+    [ -f "$SCRIPTLET" ] || return 0
+    if [ -f "$DATA_DIR/alpine.ext4" ]; then
+        _wanted="alpine"
+    else
+        _wanted="alpine installer"
+    fi
+    _current="$(sed -n 's/^# Name: *//p' "$SCRIPTLET" 2>/dev/null | head -n 1)"
+    [ "$_current" = "$_wanted" ] && return 0
+    _tmp="$SCRIPTLET.tmp.$$"
+    if grep -q '^# Name:' "$SCRIPTLET" 2>/dev/null; then
+        sed "s/^# Name:.*/# Name: $_wanted/" "$SCRIPTLET" > "$_tmp" 2>/dev/null
+    else
+        # Also repair a scriptlet that lost its metadata line.
+        awk -v name="$_wanted" 'NR == 1 { print; print "# Name: " name; next } { print }' \
+            "$SCRIPTLET" > "$_tmp" 2>/dev/null
+    fi
+    if [ -s "$_tmp" ]; then
+        mv "$_tmp" "$SCRIPTLET" 2>/dev/null || rm -f "$_tmp"
+    else
+        rm -f "$_tmp" 2>/dev/null || true
+    fi
+}
 
 ensure_state_dir() {
     mkdir -p "$STATE_DIR" 2>/dev/null || true
@@ -159,8 +242,8 @@ require_image() {
 }
 
 require_kterm() {
-    if [ ! -x "$KTERM" ]; then
-        fail_action "kterm is not installed. Install kterm to open a terminal."
+    if [ -z "$(find_kterm)" ]; then
+        fail_action "kterm is not installed. Install kterm (or KPM) to open a terminal."
     fi
 }
 
@@ -200,10 +283,16 @@ probe_status() {
     status_set app_version "$APP_VERSION"
     status_set arch "$(detect_arch)"
 
-    if [ -x "$KTERM" ]; then
+    if [ -n "$(find_kterm)" ]; then
         status_set kterm 1
     else
         status_set kterm 0
+    fi
+
+    if [ -n "$(find_kpm)" ]; then
+        status_set kpm 1
+    else
+        status_set kpm 0
     fi
 
     if [ -f "$DATA_DIR/alpine.ext4" ]; then

@@ -8,16 +8,18 @@ improved mounting logic and an XFCE desktop option.
 
 This branch replaces the old **KUAL extension** with a modern
 **[Illusion](https://kindlemodshelf.me/illusion)** app: a real Mesquite application
-with a touch UI, in-app updates and a built-in status/log view.
+with a touch UI, in-app updates and a built-in status/log view. The app is called
+**Alpine Manager**; its library launcher starts as **alpine installer** and is renamed
+to **alpine** once a root image has been deployed.
 
 Based on [ohaiibuzzle's alpine_kindle](https://github.com/ohaiibuzzle/alpine_kindle),
 which itself is a fork of [schuhumi's alpine_kindle](https://github.com/schuhumi/alpine_kindle).
 
 > **Migrating from the KUAL version?**
 > Copy the new `alpine_kindle/` folder and `alpine_kindle.sh` scriptlet to
-> `/mnt/us/documents/`, then tap **Alpine Linux** in your Library. The app can remove
-> the old KUAL extension for you from its **Maintenance** section. Your Alpine images
-> in `/mnt/us/alpine` are reused.
+> `/mnt/us/documents/`, then tap **alpine installer** in your Library. The app can
+> remove the old KUAL extension for you from its **Maintenance** section. Your Alpine
+> images in `/mnt/us/alpine` are reused.
 
 ## ⚠️ Critical warning
 
@@ -40,9 +42,11 @@ Check the USBNetwork status before connecting a cable while Alpine is running.
 | Prompts typed in kterm | Confirmation dialogs in the app |
 | Manual zip updates | **Update this app** button + **Reload** |
 | Shortcut in `/mnt/us/documents` | Scriptlet in `/mnt/us/documents` that registers the Mesquite app |
+| Name "Alpine" | "alpine installer" → "alpine" scriptlet, app named "Alpine Manager" |
 
 kterm is still required for the interactive Alpine shell, the XFCE session and the GUI
-installer. The launcher itself no longer needs KUAL.
+installer. If kterm is missing, the app can install it through **KPM** (`kpm -y install
+kterm`). The launcher itself no longer needs KUAL.
 
 ## Requirements
 
@@ -50,15 +54,20 @@ installer. The launcher itself no longer needs KUAL.
    See [kindlemodding.org](https://kindlemodding.org).
 2. **Illusion-compatible firmware** (Mesquite apps). No KUAL installation is needed.
 3. **kterm** for terminal and desktop sessions:
-   [bfabiszewski/kterm releases](https://github.com/bfabiszewski/kterm/releases).
+   [bfabiszewski/kterm releases](https://github.com/bfabiszewski/kterm/releases), or
+   [KPM](https://github.com/KindleModding/KPM) so the app can install kterm for you.
 4. **Wi-Fi** for deploying Alpine and for app updates.
 5. About **2–3 GB free** on `/mnt/us`.
 6. **USBNetwork** or **KOReader** if you want SSH while Alpine is running (optional).
 
+**Fish is optional.** Tick **Install fish as the default shell** before deploying, or
+use the **Install fish shell** button later. Fish is installed inside the image with
+`apk`, and the Alpine shell automatically starts fish when it is present.
+
 The Utild command runner is installed automatically on first launch. It is downloaded
 from a pinned KindleForge build with a SHA-256 check; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). If the Kindle is offline during first
-launch, the app still opens and tells you to reconnect Wi-Fi and tap **Alpine Linux**
+launch, the app still opens and tells you to reconnect Wi-Fi and tap the Alpine item
 again.
 
 ## Installation
@@ -72,7 +81,7 @@ again.
 3. Copy **both** items to `/mnt/us/documents/` on the Kindle.
    Do **not** put them in `/mnt/us/extensions/` — that is the old KUAL location.
 4. Eject the Kindle safely.
-5. Open the Library and tap **Alpine Linux**. If it is not there yet, refresh the
+5. Open the Library and tap **alpine installer**. If it is not there yet, refresh the
    library or reboot once; scriptlets are indexed like books.
 
 The first tap:
@@ -80,17 +89,21 @@ The first tap:
 - copies the app to `/var/local/mesquite/alpine_kindle`,
 - registers it in `/var/local/appreg.db`,
 - installs/starts Utild,
-- opens the Alpine Linux app.
+- opens the **Alpine Manager** app.
 
-After that, launch **Alpine Linux** from the Library whenever you want the UI. Tapping
-the library item always re-runs the scriptlet, which also repairs/refreshes the app.
+After that, launch **alpine** from the Library whenever you want the UI. Tapping the
+library item always re-runs the scriptlet, which also repairs/refreshes the app. The
+scriptlet renames itself to **alpine** after the first successful deploy, and back to
+**alpine installer** if you delete the root image. If the Library still shows the old
+name, refresh the Library or reboot so it re-indexes the scriptlet.
 
 ## First run
 
 1. Tap **Deploy Alpine** and confirm. This downloads the latest release image
    (`armhf` or `armv7`), unzips it into `/mnt/us/alpine` and creates `alpine.ext4`.
    The download can take several minutes; the progress bar and Activity log update as
-   it goes.
+   it goes. Tick **Install fish as the default shell** first if you want fish; the
+   deploy then continues with the fish install.
 2. Tap **Alpine shell** for a terminal inside Alpine.
 3. Optional: tap **GUI installer**, choose XFCE (`x`) and wait for `apk` to finish.
 4. Tap **XFCE desktop** to start the graphical session.
@@ -106,9 +119,12 @@ Default credentials:
 | --- | --- |
 | **Deploy Alpine** | Downloads the latest release rootfs (clean install; only when no root exists). |
 | **Deploy nightly build** | Same, from the nightly workflow. May be unstable. |
+| **Install fish as the default shell** | Checkbox: after a successful deploy, install fish with `apk` and set it as root/alpine's shell. |
 | **Alpine shell** | Opens kterm and drops into Alpine. |
 | **XFCE desktop** | Opens kterm, starts Xephyr and the XFCE session. |
 | **GUI installer** | Opens kterm and runs the interactive desktop installer. |
+| **Install kterm** | Shows when kterm is missing; runs `kpm -y install kterm`. |
+| **Install fish shell** | Mounts the stopped image, installs fish and sets the default shell. |
 | **Stop Alpine** | Unmounts everything and detaches loop devices. |
 | **Delete Alpine root** | Deletes `alpine.ext4`; keeps `home.ext4`. |
 | **Delete home data** | Deletes `home.ext4` (all user data/settings). |
@@ -131,6 +147,7 @@ space indicator helps before deploying.
 │   ├── style.css
 │   ├── script.js
 │   └── bin/                    # shell implementation
+│       └── alpine.sh           # canonical mount/chroot script (packaged copy)
 └── alpine_kindle.sh            # scriptlet: install + register + launch
 
 /var/local/mesquite/alpine_kindle/   # copy Mesquite actually runs
@@ -153,8 +170,10 @@ runs the matching script in `bin/`. Scripts write progress to `status.txt` and o
 to `action.log`; the app reads both with a hidden `file://` iframe. That is the same
 pattern used by other Illusion apps.
 
-The Alpine mount/chroot logic lives in the rootfs' `alpine.sh`, unchanged by this
-branch. This branch replaces the launcher around it.
+The canonical mount/chroot logic lives in the repo's `alpine.sh`. Release builds copy
+it into `alpine_kindle/bin/alpine.sh`; the deploy/update scripts copy it to
+`/mnt/us/alpine/alpine.sh`, so launcher updates also refresh the mount script. That
+script now starts fish instead of `/bin/sh` when fish is installed.
 
 ## Updating
 
@@ -175,7 +194,7 @@ files over the old ones and tapping the library item again.
 
 ## Troubleshooting
 
-### The "Alpine Linux" item is not in the Library
+### The Alpine item is not in the Library
 
 - Scriptlets require the Universal Hotfix/scriptlet support. Reinstall the latest
   hotfix.
@@ -190,16 +209,23 @@ Check `/mnt/us/alpine/illusion/install.log` on the Kindle.
 
 ### The app says "Runtime offline"
 
-Utild is not running. Connect Wi-Fi, close the app, and tap **Alpine Linux** in the
+Utild is not running. Connect Wi-Fi, close the app, and tap the Alpine item in the
 Library again. The scriptlet downloads/restarts it. The pinned source is the KindleForge
 repository; if that is unavailable, place a compatible Utild binary at
 `/mnt/us/alpine/utild/utild` (or `/var/local/kmc/utild`, `UtildHF`/`UtildSF`) manually.
 
 ### Shell/XFCE buttons are disabled
 
-kterm is missing or Alpine is not installed. Install kterm from
+kterm is missing or Alpine is not installed. Tap **Install kterm** if KPM is available
+(the app runs `kpm -y install kterm`), or install kterm manually from
 [bfabiszewski/kterm](https://github.com/bfabiszewski/kterm/releases) and tap
 **Refresh status**.
+
+### fish install fails
+
+The fish install mounts the image and runs `apk`, so it needs Wi-Fi inside Alpine and a
+stopped Alpine. Check the Activity log; the image is unmounted on failure and you can
+retry from **Install fish shell**.
 
 ### Alpine won't unmount
 
@@ -225,9 +251,8 @@ done
 
 - **`alpine.ext4`** — Alpine root filesystem (2 GB default).
 - **`home.ext4`** — separate home partition, created on first Alpine start.
-- **`alpine.sh`** — mount, bind-mount, chroot and GUI bootstrap logic (shipped in the
-  rootfs image).
-- **`alpine.conf`** — legacy upstart unit; explicitly outdated and no longer installed
+- **`alpine.sh`** — mount, bind-mount, chroot and GUI/fish bootstrap logic (packaged
+  with the launcher and copied into `/mnt/us/alpine`).
   by the launcher.
 
 Tested on:
@@ -245,7 +270,8 @@ free and 512 MB RAM.
 ./tools/package.sh
 ```
 
-This creates `alpine_kindle-dev.zip` with the layout the in-app updater expects.
+This creates `alpine_kindle-dev.zip` with the layout the in-app updater expects,
+including the canonical `alpine.sh` under `alpine_kindle/bin/`.
 
 ### Syntax checks
 

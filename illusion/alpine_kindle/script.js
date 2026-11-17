@@ -5,7 +5,7 @@
  */
 
 var APP_ID = "com.fluoroom.alpinekindle";
-var APP_VERSION = "2.0.0";
+var APP_VERSION = "2.1.0";
 var APP_DIR = "/mnt/us/documents/alpine_kindle";
 var STATUS_URL = "file:///mnt/us/alpine/illusion/status.txt";
 var LOG_URL = "file:///mnt/us/alpine/illusion/action.log";
@@ -22,6 +22,7 @@ var state = {
     home: false,
     running: false,
     kterm: false,
+    kpm: false,
     utild: false,
     kual: false,
     updated: false,
@@ -236,6 +237,7 @@ function applyStatus(raw) {
         state.home = false;
         state.running = false;
         state.kterm = false;
+        state.kpm = false;
         state.utild = false;
         state.kual = false;
         state.updated = false;
@@ -258,6 +260,7 @@ function applyStatus(raw) {
     state.home = data.home === "1";
     state.running = data.running === "1";
     state.kterm = data.kterm === "1";
+    state.kpm = data.kpm === "1";
     state.utild = data.utild === "1";
     state.kual = data.kual === "1";
     state.updated = data.updated === "1";
@@ -339,16 +342,20 @@ function bannerText() {
     }
 
     if (state.missing) {
-        parts.push("Setup incomplete. Close this app and tap \"Alpine Linux\" in your Library.");
+        parts.push("Setup incomplete. Close this app and tap the Alpine item in your Library.");
         return parts.join(" ");
     }
 
     if (!state.utild) {
-        parts.push("Terminal runtime offline. Connect Wi-Fi, close this app, then tap \"Alpine Linux\" in your Library.");
+        parts.push("Terminal runtime offline. Connect Wi-Fi, close this app, then tap the Alpine item in your Library.");
     }
 
     if (!state.kterm) {
-        parts.push("kterm is not installed; terminal and desktop buttons are disabled.");
+        if (state.kpm) {
+            parts.push("kterm is not installed; tap Install kterm below.");
+        } else {
+            parts.push("kterm is not installed and KPM was not found; install one of them to use the terminal.");
+        }
     }
 
     if (state.updated || versionMismatch()) {
@@ -449,8 +456,25 @@ function render() {
     setDisabled("btn-delete-root", !canRun || !state.alpine);
     setDisabled("btn-delete-home", !canRun || !state.home);
     setDisabled("btn-update", !canRun);
+    setDisabled("btn-install-kterm", !canRun || !state.kpm);
+    setDisabled("btn-fish", !canRun || !state.alpine || state.running);
     setDisabled("btn-remove-kual", !canRun || !state.kual);
     setDisabled("btn-refresh", !state.utild || busy);
+
+    if (state.kterm) {
+        hide(byId("btn-install-kterm"));
+    } else {
+        show(byId("btn-install-kterm"));
+        setText("kterm-desc", state.kpm ? "Install kterm through KPM" : "KPM not found; install kterm manually");
+    }
+
+    if (!state.alpine) {
+        setText("fish-desc", "Deploy Alpine first");
+    } else if (state.running) {
+        setText("fish-desc", "Stop Alpine before installing fish");
+    } else {
+        setText("fish-desc", "Make fish the default shell");
+    }
 
     if (state.kual) {
         show(byId("btn-remove-kual"));
@@ -561,7 +585,8 @@ function wireEvents() {
             "This creates the root filesystem in /mnt/us/alpine. Your home data is not touched. " +
             "Wi-Fi is required and the download can take a while.",
             function () {
-                runAction("get.sh --release --yes", "Deploy Alpine");
+                var fish = byId("opt-fish").checked ? " --fish" : "";
+                runAction("get.sh --release --yes" + fish, "Deploy Alpine");
             }
         );
     };
@@ -572,7 +597,8 @@ function wireEvents() {
             "Download and install the latest NIGHTLY Alpine build?\n\n" +
             "Nightly builds are untested and may be unstable. Wi-Fi is required.",
             function () {
-                runAction("get.sh --nightly --yes", "Deploy Alpine (nightly)");
+                var fish = byId("opt-fish").checked ? " --fish" : "";
+                runAction("get.sh --nightly --yes" + fish, "Deploy Alpine (nightly)");
             }
         );
     };
@@ -587,6 +613,21 @@ function wireEvents() {
 
     byId("btn-installer").onclick = function () {
         launchSession("launch_kterm.sh gui_installer.sh", "Opening GUI installer\u2026");
+    };
+
+    byId("btn-install-kterm").onclick = function () {
+        runAction("install_kterm.sh", "Install kterm");
+    };
+
+    byId("btn-fish").onclick = function () {
+        askConfirm(
+            "Install fish shell",
+            "Install fish in Alpine and make it the default shell for root and the alpine user?\n\n" +
+            "Alpine must be stopped. Wi-Fi is required inside Alpine for apk.",
+            function () {
+                runAction("fish.sh --yes", "Install fish shell");
+            }
+        );
     };
 
     byId("btn-stop").onclick = function () {
@@ -619,7 +660,7 @@ function wireEvents() {
     byId("btn-update").onclick = function () {
         askConfirm(
             "Update this app",
-            "Download and install the latest version of the Alpine Linux launcher?\n\n" +
+            "Download and install the latest version of Alpine Manager?\n\n" +
             "Your Alpine images are not touched. Wi-Fi is required.",
             function () {
                 runAction("update.sh", "Update app");

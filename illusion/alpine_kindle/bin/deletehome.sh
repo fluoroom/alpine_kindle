@@ -3,7 +3,7 @@
 #
 # Usage: deletehome.sh [--yes]
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 ASSUME_YES=0

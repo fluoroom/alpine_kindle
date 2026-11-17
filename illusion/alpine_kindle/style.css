@@ -145,6 +145,23 @@ button.disabled .action-desc {
     color: #999999;
 }
 
+.checkline {
+    display: block;
+    margin: 2px 0 10px 0;
+    padding: 10px 12px;
+    border: 1px dashed #777777;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.checkline input {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    vertical-align: -4px;
+}
+
 .ghost {
     background: #ffffff;
     border: 2px solid #111111;

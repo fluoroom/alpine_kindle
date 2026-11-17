@@ -1,7 +1,7 @@
 #!/bin/sh
 # Stops Alpine and cleans up mounts, loop devices and leftover processes.
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 begin_action "Stop Alpine" || exit 1

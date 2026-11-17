@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<widget id="com.fluoroom.alpinekindle" version="2.0.0" viewmodes="application"
+<widget id="com.fluoroom.alpinekindle" version="2.1.0" viewmodes="application"
     xmlns="http://www.w3.org/ns/widgets"
     xmlns:kindle="http://kindle.amazon.com/ns/widget-extensions">
-    <name xml:lang="en">Alpine Linux</name>
-    <description xml:lang="en">Run Alpine Linux and XFCE on your Kindle</description>
+    <name xml:lang="en">Alpine Manager</name>
+    <description xml:lang="en">Manage Alpine Linux and XFCE on your Kindle</description>
 
     <content src="index.html" />
 

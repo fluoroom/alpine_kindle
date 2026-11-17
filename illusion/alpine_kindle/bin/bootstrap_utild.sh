@@ -6,7 +6,7 @@
 # this script downloads a pinned, checksum-verified build from the
 # KindleForge project (GPL-3.0). See THIRD_PARTY_NOTICES.md.
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 UTILD_DIR="/var/local/kmc"

@@ -46,6 +46,21 @@ repository is an independent implementation for Alpine Linux.
   `/mnt/us/extensions/kterm/bin/kterm` and only used for interactive sessions
   (Alpine shell, XFCE, GUI installer).
 
+## KPM (Kindle Package Manager)
+
+- Project: [KindleModding/KPM](https://github.com/KindleModding/KPM)
+- License: GPL-3.0 (CLI components are CC0)
+- How it is used here: optional. If kterm is missing and `kpm` is installed, the
+  **Install kterm** action runs `kpm -y install kterm`. KPM itself is not bundled.
+
+## Fish shell
+
+- Project: <https://fishshell.com/>
+- License: GPL-2.0
+- How it is used here: optional. The **Install fish shell** action runs
+  `apk add fish` inside the user's Alpine image and changes the root/alpine login
+  shell. Fish is installed from Alpine's repositories on the device.
+
 ## Alpine Linux
 
 - Site: <https://alpinelinux.org/>

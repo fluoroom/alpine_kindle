@@ -2,7 +2,7 @@
 # Removes the old KUAL extension and its library shortcut. Alpine data in
 # /mnt/us/alpine is not touched.
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 begin_action "Remove old KUAL extension" || exit 1

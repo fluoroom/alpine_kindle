@@ -17,9 +17,12 @@ jobs:
 
       - name: Create release zip
         run: |
-          cd illusion
-          zip -r ../alpine_kindle-${{ github.ref_name }}.zip alpine_kindle/ alpine_kindle.sh
-          cd ..
+          STAGE="$(mktemp -d)"
+          cp -R illusion/alpine_kindle "$STAGE/"
+          cp illusion/alpine_kindle.sh "$STAGE/"
+          cp alpine.sh "$STAGE/alpine_kindle/bin/alpine.sh"
+          ( cd "$STAGE" && zip -r "$GITHUB_WORKSPACE/alpine_kindle-${{ github.ref_name }}.zip" alpine_kindle/ alpine_kindle.sh )
+          rm -rf "$STAGE"
           sha256sum alpine_kindle-${{ github.ref_name }}.zip > alpine_kindle-${{ github.ref_name }}.zip.sha256
 
       - name: Create Release

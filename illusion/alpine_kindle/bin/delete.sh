@@ -3,7 +3,7 @@
 #
 # Usage: delete.sh [--yes]
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 ASSUME_YES=0
@@ -49,6 +49,8 @@ if [ -f "$DATA_DIR/alpine.conf" ]; then
 fi
 
 rm -f "$DATA_DIR/alpine.zip" 2>/dev/null || true
+
+set_scriptlet_name
 
 probe_status
 status_set message "Alpine root deleted (home data kept)"

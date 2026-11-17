@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Alpine Linux</title>
+    <title>Alpine Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <link rel="stylesheet" type="text/css" media="screen" href="style.css">
 </head>
@@ -12,8 +12,8 @@
 
         <header class="topbar">
             <div class="brand">
-                <h1>Alpine Linux</h1>
-                <p class="sub">Kindle Edition <span id="version">v2.0.0</span></p>
+                <h1>Alpine Manager</h1>
+                <p class="sub">Alpine Linux for Kindle <span id="version">v2.1.0</span></p>
             </div>
             <button id="btn-home" class="ghost small" type="button">Library</button>
         </header>
@@ -55,6 +55,11 @@
                 <span class="action-title">Deploy nightly build</span>
                 <span class="action-desc">Bleeding edge &middot; may be unstable</span>
             </button>
+
+            <label class="checkline" for="opt-fish">
+                <input type="checkbox" id="opt-fish">
+                <span>Install fish as the default shell</span>
+            </label>
         </section>
 
         <section class="group">
@@ -74,6 +79,11 @@
                 <span class="action-title">GUI installer</span>
                 <span class="action-desc">Install XFCE inside Alpine</span>
             </button>
+
+            <button id="btn-install-kterm" class="action hidden" type="button">
+                <span class="action-title">Install kterm</span>
+                <span id="kterm-desc" class="action-desc">Install kterm through KPM</span>
+            </button>
         </section>
 
         <section class="group">
@@ -92,6 +102,15 @@
             <button id="btn-delete-home" class="action" type="button">
                 <span class="action-title">Delete home data</span>
                 <span class="action-desc">Removes user files and settings</span>
+            </button>
+        </section>
+
+        <section class="group">
+            <h2>Extras</h2>
+
+            <button id="btn-fish" class="action" type="button">
+                <span class="action-title">Install fish shell</span>
+                <span id="fish-desc" class="action-desc">Make fish the default shell (Alpine must be stopped)</span>
             </button>
         </section>
 
@@ -129,7 +148,7 @@
 
         <footer class="footer">
             <p class="warning">Do not connect USB while Alpine is running.</p>
-            <p>Illusion app &middot; shell bridge by Utild &middot; <span id="footer-version">v2.0.0</span></p>
+            <p>Alpine Manager &middot; Illusion app &middot; shell bridge by Utild &middot; <span id="footer-version">v2.1.0</span></p>
         </footer>
     </div>
 

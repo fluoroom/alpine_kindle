@@ -4,7 +4,7 @@
 #
 # Usage: probe.sh [--clear-updated]
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 # Do not overwrite an in-progress action's message.
@@ -17,6 +17,8 @@ if [ "$(status_get busy)" = "1" ] && [ ! -d "$LOCK_DIR" ]; then
     status_set busy 0
     status_set message "Status refreshed"
 fi
+
+set_scriptlet_name
 
 if [ "$1" = "--clear-updated" ]; then
     status_set updated 0

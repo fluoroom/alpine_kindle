@@ -5,17 +5,19 @@
 #
 # --yes is passed by the Illusion UI (which already asked for confirmation).
 
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
 
 NIGHTLY=0
 ASSUME_YES=0
+INSTALL_FISH=0
 
 for arg in "$@"; do
     case "$arg" in
         --nightly) NIGHTLY=1 ;;
         --release) NIGHTLY=0 ;;
         --yes|-y) ASSUME_YES=1 ;;
+        --fish) INSTALL_FISH=1 ;;
         *)
             echo "Unknown option: $arg" >&2
             exit 2
@@ -112,8 +114,13 @@ if [ ! -f "$DATA_DIR/alpine.ext4" ]; then
     fail_action "Archive did not contain alpine.ext4."
 fi
 
-# alpine.conf is a legacy upstart unit and is no longer installed. The
-# Illusion app launches Alpine directly, so only alpine.sh is needed here.
+# Prefer the alpine.sh shipped with this launcher (it can launch fish when the
+# user installs it). Rootfs images built before fish support still work.
+if [ -f "$APP_DIR/bin/alpine.sh" ]; then
+    cp "$APP_DIR/bin/alpine.sh" "$DATA_DIR/alpine.sh" 2>/dev/null || true
+fi
+
+set_scriptlet_name
 
 probe_status
 status_set message "Alpine $CHANNEL installed successfully"
@@ -121,5 +128,12 @@ status_set progress 100
 finish_action
 
 log "Alpine installed."
+log "Optional: install fish as the default shell from the app."
+
+if [ "$INSTALL_FISH" = "1" ]; then
+    log "Starting fish installation..."
+    exec sh "$SCRIPT_DIR/fish.sh" --yes
+fi
+
 log "Tap 'Alpine shell' to start it, or 'GUI Installer' to install XFCE."
 exit 0

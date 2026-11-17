@@ -187,18 +187,21 @@ function readTextFile(url, callback) {
         finish("");
     };
 
+    try {
+        // A fragment makes the load unique so WebKit does not serve a cached
+        // copy of the status/log file. Fragments are not part of the path.
+        iframe.src = url + "#" + new Date().getTime();
+    } catch (e) {
+        finish("");
+        return;
+    }
+
     document.body.appendChild(iframe);
 
     // A missing file does not always fire onload; don't block the UI.
     timer = window.setTimeout(function () {
         finish("");
     }, 2500);
-
-    try {
-        iframe.src = url;
-    } catch (e) {
-        finish("");
-    }
 }
 
 /* ------------------------------------------------------------------ */

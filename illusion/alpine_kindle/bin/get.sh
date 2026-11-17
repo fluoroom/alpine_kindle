@@ -102,12 +102,13 @@ status_set message "Extracting Alpine image..."
 status_set progress 55
 
 if ! unzip -o "$ZIP" >/dev/null 2>&1; then
-    rm -f "$ZIP" 2>/dev/null || true
+    rm -f "$ZIP" "$DATA_DIR/alpine.ext4" "$DATA_DIR/alpine.sh" 2>/dev/null || true
     fail_action "Could not unzip the Alpine image (corrupt download?)."
 fi
 rm -f "$ZIP" 2>/dev/null || true
 
 if [ ! -f "$DATA_DIR/alpine.ext4" ]; then
+    rm -f "$DATA_DIR/alpine.ext4" "$DATA_DIR/alpine.sh" 2>/dev/null || true
     fail_action "Archive did not contain alpine.ext4."
 fi
 

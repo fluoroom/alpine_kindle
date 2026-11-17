@@ -10,6 +10,14 @@ SCRIPT_DIR="$(dirname "$0")"
 # Do not overwrite an in-progress action's message.
 probe_status
 
+# If a script was killed (for example by a reboot) the busy flag can survive
+# without a lock. Refresh is an explicit user action and Utild is running, so
+# it is safe to clear that stale state.
+if [ "$(status_get busy)" = "1" ] && [ ! -d "$LOCK_DIR" ]; then
+    status_set busy 0
+    status_set message "Status refreshed"
+fi
+
 if [ "$1" = "--clear-updated" ]; then
     status_set updated 0
     log "State refreshed (update acknowledged)."

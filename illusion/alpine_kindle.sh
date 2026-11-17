@@ -63,9 +63,13 @@ say "Alpine Linux Illusion setup"
 
 # --- Install / refresh the Mesquite copy -----------------------------------
 say "Copying app to $TARGET_DIR"
-rm -rf "$TARGET_DIR" 2>/dev/null || true
 mkdir -p "$(dirname "$TARGET_DIR")" 2>/dev/null || true
-cp -r "$SOURCE_DIR" "$TARGET_DIR" 2>/dev/null || show_error "Could not copy the app to $TARGET_DIR"
+rm -rf "$TARGET_DIR" 2>/dev/null || true
+if [ -d "$TARGET_DIR" ]; then
+    show_error "Could not remove the old copy at $TARGET_DIR"
+fi
+mkdir -p "$TARGET_DIR" 2>/dev/null || show_error "Could not create $TARGET_DIR"
+cp -r "$SOURCE_DIR/." "$TARGET_DIR/" 2>/dev/null || show_error "Could not copy the app to $TARGET_DIR"
 
 # --- Register with Mesquite ------------------------------------------------
 say "Registering $APP_ID"

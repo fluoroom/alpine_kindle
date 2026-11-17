@@ -118,7 +118,8 @@ status_set message "Refreshing Mesquite app..."
 status_set progress 85
 
 rm -rf "$MESQUITE_DIR" 2>/dev/null || true
-if cp -a "$APP_DIR" "$MESQUITE_DIR" 2>/dev/null; then
+mkdir -p "$MESQUITE_DIR" 2>/dev/null || true
+if cp -a "$APP_DIR/." "$MESQUITE_DIR/" 2>/dev/null; then
     register_app_db 2>/dev/null || log "WARNING: Could not update appreg.db."
 else
     log "WARNING: Could not refresh $MESQUITE_DIR."

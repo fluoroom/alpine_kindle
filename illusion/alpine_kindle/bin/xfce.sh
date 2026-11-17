@@ -37,4 +37,5 @@ else
     status_set message "XFCE exited with code $RC"
 fi
 log "XFCE session exited (code $RC)."
+launch_app
 exit "$RC"

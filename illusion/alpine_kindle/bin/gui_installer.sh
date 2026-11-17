@@ -38,4 +38,5 @@ else
     status_set message "GUI installer exited with code $RC"
 fi
 log "GUI installer exited (code $RC)."
+launch_app
 exit "$RC"

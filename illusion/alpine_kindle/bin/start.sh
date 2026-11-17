@@ -37,4 +37,5 @@ else
     status_set message "Alpine shell exited with code $RC"
 fi
 log "Alpine shell exited (code $RC)."
+launch_app
 exit "$RC"

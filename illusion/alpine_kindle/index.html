@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Alpine Linux</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" media="screen" href="style.css">
+</head>
+<body>
+    <div class="page">
+
+        <header class="topbar">
+            <div class="brand">
+                <h1>Alpine Linux</h1>
+                <p class="sub">Kindle Edition <span id="version">v2.0.0</span></p>
+            </div>
+            <button id="btn-home" class="ghost small" type="button">Library</button>
+        </header>
+
+        <div id="banner" class="banner hidden">
+            <span id="banner-text"></span>
+        </div>
+
+        <section class="status">
+            <table class="status-table">
+                <tr>
+                    <td class="status-left">
+                        <div class="state-line">
+                            <span id="state-dot" class="dot dot-unknown"></span>
+                            <span id="state-title">Checking&hellip;</span>
+                        </div>
+                        <div id="state-detail" class="state-detail">Reading device state&hellip;</div>
+                    </td>
+                    <td class="status-right">
+                        <div id="free" class="free">&mdash;</div>
+                        <div class="free-label">free</div>
+                    </td>
+                </tr>
+            </table>
+            <div id="progress-wrap" class="progress-wrap hidden">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+        </section>
+
+        <section class="group">
+            <h2>Set up</h2>
+
+            <button id="btn-deploy-release" class="action primary" type="button">
+                <span class="action-title">Deploy Alpine</span>
+                <span class="action-desc">Latest release &middot; clean install</span>
+            </button>
+
+            <button id="btn-deploy-nightly" class="action" type="button">
+                <span class="action-title">Deploy nightly build</span>
+                <span class="action-desc">Bleeding edge &middot; may be unstable</span>
+            </button>
+        </section>
+
+        <section class="group">
+            <h2>Use</h2>
+
+            <button id="btn-shell" class="action" type="button">
+                <span class="action-title">Alpine shell</span>
+                <span class="action-desc">Open a terminal inside Alpine</span>
+            </button>
+
+            <button id="btn-xfce" class="action" type="button">
+                <span class="action-title">XFCE desktop</span>
+                <span class="action-desc">Start the graphical session</span>
+            </button>
+
+            <button id="btn-installer" class="action" type="button">
+                <span class="action-title">GUI installer</span>
+                <span class="action-desc">Install XFCE inside Alpine</span>
+            </button>
+        </section>
+
+        <section class="group">
+            <h2>Manage</h2>
+
+            <button id="btn-stop" class="action" type="button">
+                <span class="action-title">Stop Alpine</span>
+                <span class="action-desc">Unmount everything safely</span>
+            </button>
+
+            <button id="btn-delete-root" class="action" type="button">
+                <span class="action-title">Delete Alpine root</span>
+                <span class="action-desc">Keeps your home data</span>
+            </button>
+
+            <button id="btn-delete-home" class="action" type="button">
+                <span class="action-title">Delete home data</span>
+                <span class="action-desc">Removes user files and settings</span>
+            </button>
+        </section>
+
+        <section class="group">
+            <h2>Maintenance</h2>
+
+            <button id="btn-update" class="action" type="button">
+                <span class="action-title">Update this app</span>
+                <span class="action-desc">Download the latest launcher</span>
+            </button>
+
+            <button id="btn-remove-kual" class="action hidden" type="button">
+                <span class="action-title">Remove old KUAL extension</span>
+                <span class="action-desc">Clean up the pre-Illusion setup</span>
+            </button>
+
+            <button id="btn-reload" class="action hidden" type="button">
+                <span class="action-title">Reload app</span>
+                <span class="action-desc">Apply the downloaded update</span>
+            </button>
+
+            <button id="btn-refresh" class="action" type="button">
+                <span class="action-title">Refresh status</span>
+                <span class="action-desc">Re-check kterm, Utild and images</span>
+            </button>
+        </section>
+
+        <section class="log-card">
+            <div class="log-head">
+                <h2>Activity</h2>
+                <span id="log-time" class="log-time"></span>
+            </div>
+            <pre id="log" class="log">Waiting for activity&hellip;</pre>
+        </section>
+
+        <footer class="footer">
+            <p class="warning">Do not connect USB while Alpine is running.</p>
+            <p>Illusion app &middot; shell bridge by Utild &middot; <span id="footer-version">v2.0.0</span></p>
+        </footer>
+    </div>
+
+    <div id="overlay" class="overlay hidden">
+        <div class="dialog">
+            <h2 id="confirm-title">Confirm</h2>
+            <p id="confirm-text"></p>
+            <div class="dialog-buttons">
+                <button id="confirm-cancel" class="action" type="button">Cancel</button>
+                <button id="confirm-ok" class="action danger" type="button">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

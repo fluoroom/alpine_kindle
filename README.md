@@ -1,155 +1,290 @@
-# Alpine Linux on Kindle Paperwhite 6 (PW6)
+# Alpine Linux on Kindle (Illusion Edition)
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/fluoroom/alpine_kindle/create-rootfs.yaml?branch=pw6)](https://github.com/fluoroom/alpine_kindle/actions)
 
-This fork provides a set of utilities to get [Alpine Linux](https://alpinelinux.org/) running on Kindle Paperwhite 6 and other compatible Kindles with improved stability, better mounting logic, and enhanced features.
+This fork provides utilities to run [Alpine Linux](https://alpinelinux.org/) on the
+Kindle Paperwhite 6 and other compatible Kindles, with a separate home partition,
+improved mounting logic and an XFCE desktop option.
 
-This is based on [ohaiibuzzle's alpine_kindle](https://github.com/ohaiibuzzle/alpine_kindle) which itself is a fork of [schuhumi's alpine_kindle](https://github.com/schuhumi/alpine_kindle).
+This branch replaces the old **KUAL extension** with a modern
+**[Illusion](https://kindlemodshelf.me/illusion)** app: a real Mesquite application
+with a touch UI, in-app updates and a built-in status/log view.
 
-## Overview
+Based on [ohaiibuzzle's alpine_kindle](https://github.com/ohaiibuzzle/alpine_kindle),
+which itself is a fork of [schuhumi's alpine_kindle](https://github.com/schuhumi/alpine_kindle).
 
-Kindles run a Linux operating system with X11 support already on board. To make better use of that, you can utilize a full-blown Linux distribution including a proper desktop environment through chroot. Your Kindle stays fully functional for reading books and buying content.
+> **Migrating from the KUAL version?**
+> Copy the new `alpine_kindle/` folder and `alpine_kindle.sh` scriptlet to
+> `/mnt/us/documents/`, then tap **Alpine Linux** in your Library. The app can remove
+> the old KUAL extension for you from its **Maintenance** section. Your Alpine images
+> in `/mnt/us/alpine` are reused.
 
-## Key Features of This Fork (PW6 Branch)
+## ⚠️ Critical warning
 
-- **Separate Home Partition**: User data and settings are stored in a separate `home.ext4` image for easier backups and clean reinstalls
-- **KUAL Extension Enhancements**: 
-  - One-click deployment of the latest Alpine release
-  - CLI installer for easy XFCE installation
-  - Separate delete options for root and home partitions
-  - Self-updating extension from GitHub
+**While Alpine is running / the image is mounted, do NOT connect the Kindle to a
+computer unless USBNetwork is enabled.**
 
-## ⚠️ CRITICAL WARNING
+The Alpine image lives in `/mnt/us`, which is the USB mass-storage partition. If both
+Alpine and your computer write to it at the same time, the partition can be corrupted
+and, in the worst case, the Kindle can be bricked.
 
-**WHILE ALPINE IS RUNNING / THE IMAGE IS MOUNTED, DO NOT CONNECT YOUR KINDLE TO THE COMPUTER WITHOUT USBNETWORK ENABLED!**
+Check the USBNetwork status before connecting a cable while Alpine is running.
 
-The Alpine image resides in `/mnt/us`, which is your USB mass storage location. If both Alpine and your computer write to the userstore partition (partition 4) simultaneously, **it will be corrupted**, and you'll need to repair the partition to get your Kindle working again. **In the worst case, this could brick your Kindle!**
+## What changed from KUAL?
 
-KUAL has an option to show the USBNetwork status - always check it before connecting via SSH while Alpine is running.
+| Old KUAL setup | New Illusion setup |
+| --- | --- |
+| `kual-extension/alpine_kindle/` | `illusion/alpine_kindle/` |
+| KUAL menu (`menu.json`) | Touch UI (`index.html`, `script.js`) |
+| Every action opens kterm | Background actions via [Utild](https://github.com/KindleModding/utild); kterm only for interactive sessions |
+| Prompts typed in kterm | Confirmation dialogs in the app |
+| Manual zip updates | **Update this app** button + **Reload** |
+| Shortcut in `/mnt/us/documents` | Scriptlet in `/mnt/us/documents` that registers the Mesquite app |
 
-## Quick Start
+kterm is still required for the interactive Alpine shell, the XFCE session and the GUI
+installer. The launcher itself no longer needs KUAL.
 
-### Prerequisites
-1. **Jailbroken Kindle** - See [kindlemodding.org](https://kindlemodding.org) for jailbreaking instructions for your specific model and firmware
-2. **KUAL Launcher** - See [Post Jailbreak kindlemodding.org](https://kindlemodding.org/jailbreaking/post-jailbreak/installing-kual-mrpi/)
-3. **Kterm** - Download from [bfabiszewski's GitHub](https://github.com/bfabiszewski/kterm/releases) (required for running Alpine)
-4. **USBNetwork** required if you'll be using your USB cable while running Alpine. Download from [MobileRead](https://www.mobileread.com/forums/showthread.php?t=369990)
-5. **USBNetwork** or **KOReader** for SSH access (optional but recommended). [Download KOReader](https://github.com/koreader/koreader/releases)
+## Requirements
 
-### Installation Steps
+1. **Jailbroken Kindle** with the Universal Hotfix / scriptlet support.
+   See [kindlemodding.org](https://kindlemodding.org).
+2. **Illusion-compatible firmware** (Mesquite apps). No KUAL installation is needed.
+3. **kterm** for terminal and desktop sessions:
+   [bfabiszewski/kterm releases](https://github.com/bfabiszewski/kterm/releases).
+4. **Wi-Fi** for deploying Alpine and for app updates.
+5. About **2–3 GB free** on `/mnt/us`.
+6. **USBNetwork** or **KOReader** if you want SSH while Alpine is running (optional).
 
-1. **Install the KUAL extension**:
-   - Download the latest `alpine_kindle-vX.X.X.zip` from the [Releases page](https://github.com/fluoroom/alpine_kindle/releases)
-   - Extract the `alpine_kindle` folder to `/mnt/us/extensions/` on your Kindle
-   
-2. **Deploy Alpine Linux**:
-   - Open KUAL on your Kindle
-   - Navigate to "Alpine Linux PW6"
-   - Select "Deploy newest release (clean install)"
-   - Wait for the download and extraction to complete
-   
-3. **Start using Alpine**:
-   - From KUAL, select "Drop into Alpine Linux shell" for command-line access
-   - Or select "Start XFCE GUI session" for the graphical desktop (after installing GUI)
+The Utild command runner is installed automatically on first launch. It is downloaded
+from a pinned KindleForge build with a SHA-256 check; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). If the Kindle is offline during first
+launch, the app still opens and tells you to reconnect Wi-Fi and tap **Alpine Linux**
+again.
 
-### Installing the Desktop Environment
+## Installation
 
-1. From KUAL, select "GUI Installer"
-2. Confirm installation (press `y`)
-3. Choose XFCE environment (press `x`)
-4. Wait for installation to complete
-5. Return to KUAL and select "Start XFCE GUI session"
+1. Download `alpine_kindle-vX.X.X.zip` from the
+   [Releases page](https://github.com/fluoroom/alpine_kindle/releases) (or build it
+   yourself with `tools/package.sh`).
+2. Extract it. You should see:
+   - `alpine_kindle/` (the Illusion app)
+   - `alpine_kindle.sh` (the scriptlet)
+3. Copy **both** items to `/mnt/us/documents/` on the Kindle.
+   Do **not** put them in `/mnt/us/extensions/` — that is the old KUAL location.
+4. Eject the Kindle safely.
+5. Open the Library and tap **Alpine Linux**. If it is not there yet, refresh the
+   library or reboot once; scriptlets are indexed like books.
 
-**Default credentials**: 
+The first tap:
+
+- copies the app to `/var/local/mesquite/alpine_kindle`,
+- registers it in `/var/local/appreg.db`,
+- installs/starts Utild,
+- opens the Alpine Linux app.
+
+After that, launch **Alpine Linux** from the Library whenever you want the UI. Tapping
+the library item always re-runs the scriptlet, which also repairs/refreshes the app.
+
+## First run
+
+1. Tap **Deploy Alpine** and confirm. This downloads the latest release image
+   (`armhf` or `armv7`), unzips it into `/mnt/us/alpine` and creates `alpine.ext4`.
+   The download can take several minutes; the progress bar and Activity log update as
+   it goes.
+2. Tap **Alpine shell** for a terminal inside Alpine.
+3. Optional: tap **GUI installer**, choose XFCE (`x`) and wait for `apk` to finish.
+4. Tap **XFCE desktop** to start the graphical session.
+
+Default credentials:
+
 - Username: `alpine`
 - Password: `alpine`
 
-## KUAL Menu Options
+## Using the app
 
-- **Deploy newest release (clean install)**: Downloads and installs the latest Alpine rootfs from GitHub Actions
-- **Drop into Alpine Linux shell**: Opens a terminal (kterm) shell inside Alpine
-- **Start XFCE GUI session**: Launches the XFCE desktop environment
-- **GUI Installer**: Interactive installer for desktop environments
-- **Stop Alpine**: Safely unmounts Alpine and cleans up loop devices
-- **Delete Alpine Linux Root**: Removes the Alpine root filesystem (alpine.ext4)
-- **Delete Alpine HOME partition**: Removes HOME filesystem (user data and settings) (home.ext4)
-- **Update this KUAL Extension**: Updates the KUAL extension from this GitHub repository
+| Button | What it does |
+| --- | --- |
+| **Deploy Alpine** | Downloads the latest release rootfs (clean install; only when no root exists). |
+| **Deploy nightly build** | Same, from the nightly workflow. May be unstable. |
+| **Alpine shell** | Opens kterm and drops into Alpine. |
+| **XFCE desktop** | Opens kterm, starts Xephyr and the XFCE session. |
+| **GUI installer** | Opens kterm and runs the interactive desktop installer. |
+| **Stop Alpine** | Unmounts everything and detaches loop devices. |
+| **Delete Alpine root** | Deletes `alpine.ext4`; keeps `home.ext4`. |
+| **Delete home data** | Deletes `home.ext4` (all user data/settings). |
+| **Update this app** | Downloads the latest launcher release from GitHub. |
+| **Remove old KUAL extension** | Deletes `/mnt/us/extensions/alpine_kindle` and the old library shortcut. |
+| **Refresh status** | Re-detects kterm, Utild, images and mount state. |
+| **Reload** | Reloads the Mesquite app after an update. |
 
-## Architecture
+The status card shows whether Alpine is installed, mounted, and whether the runtime and
+kterm are available. The Activity panel shows the last action's output, and the free
+space indicator helps before deploying.
 
-This setup uses:
-- **alpine.ext4**: Main Alpine Linux root filesystem (2GB default)
-- **home.ext4**: Separate home partition for user data (automatically created on first run)
-- **alpine.sh**: Mounting script with improved loop device handling
-- **alpine.conf**: Upstart service configuration (currently outdated, use alpine.sh instead)
+## How it works
 
-## Compatibility
+```
+/mnt/us/documents/
+├── alpine_kindle/              # Illusion app source (HTML/CSS/JS + scripts)
+│   ├── config.xml              # Mesquite app manifest, id com.fluoroom.alpinekindle
+│   ├── index.html
+│   ├── style.css
+│   ├── script.js
+│   └── bin/                    # shell implementation
+└── alpine_kindle.sh            # scriptlet: install + register + launch
 
-Tested on:
-- Kindle Paperwhite 6 (PW6)
+/var/local/mesquite/alpine_kindle/   # copy Mesquite actually runs
+/var/local/appreg.db                 # app registration
+/var/local/kmc/utild                 # LIPC command runner (auto-installed)
 
-Should work on any touchscreen Kindle (not Kindle Fire) with:
-- At least 2-3GB free space on `/mnt/us`
-- At least 512MB RAM
-- Touchscreen support
+/mnt/us/alpine/
+├── alpine.ext4                 # Alpine root filesystem
+├── home.ext4                   # persistent home (created on first Alpine start)
+├── alpine.sh                   # mount/chroot script from the image
+└── illusion/
+    ├── status.txt              # key=value state file read by the app
+    ├── action.log              # output of the last action
+    └── install.log             # scriptlet / runtime bootstrap log
+```
+
+The UI cannot execute shell commands directly. It sends commands to
+`com.kindlemodding.utild` over LIPC (`kindle.messaging.sendStringMessage`), and Utild
+runs the matching script in `bin/`. Scripts write progress to `status.txt` and output
+to `action.log`; the app reads both with a hidden `file://` iframe. That is the same
+pattern used by other Illusion apps.
+
+The Alpine mount/chroot logic lives in the rootfs' `alpine.sh`, unchanged by this
+branch. This branch replaces the launcher around it.
+
+## Updating
+
+### Launcher / app
+
+Use **Update this app** in the Maintenance section, then tap **Reload**. The updater
+replaces only `documents/alpine_kindle` and `documents/alpine_kindle.sh`, refreshes the
+Mesquite copy, and leaves `/mnt/us/alpine` alone.
+
+You can also update manually by copying new `alpine_kindle/` and `alpine_kindle.sh`
+files over the old ones and tapping the library item again.
+
+### Alpine itself
+
+1. Delete the root filesystem (keeps home data).
+2. Deploy again.
+3. Or switch between release and nightly the same way.
 
 ## Troubleshooting
 
+### The "Alpine Linux" item is not in the Library
+
+- Scriptlets require the Universal Hotfix/scriptlet support. Reinstall the latest
+  hotfix.
+- Confirm that `alpine_kindle.sh` is directly in `/mnt/us/documents/` (not in a
+  subfolder).
+- Refresh the library or reboot.
+
+### "Application Error" when opening the item
+
+Usually means the hotfix is missing/outdated, or the app was not copied correctly.
+Check `/mnt/us/alpine/illusion/install.log` on the Kindle.
+
+### The app says "Runtime offline"
+
+Utild is not running. Connect Wi-Fi, close the app, and tap **Alpine Linux** in the
+Library again. The scriptlet downloads/restarts it. The pinned source is the KindleForge
+repository; if that is unavailable, place a compatible Utild binary at
+`/mnt/us/alpine/utild/utild` (or `/var/local/kmc/utild`, `UtildHF`/`UtildSF`) manually.
+
+### Shell/XFCE buttons are disabled
+
+kterm is missing or Alpine is not installed. Install kterm from
+[bfabiszewski/kterm](https://github.com/bfabiszewski/kterm/releases) and tap
+**Refresh status**.
+
 ### Alpine won't unmount
-The `stop.sh` script includes retry logic. If it still fails:
-```bash
-# Check what's using Alpine
-lsof /tmp/alpine/
 
-# Kill processes manually
-kill -9 <PID>
-
-# Try unmounting again
-umount /tmp/alpine
-```
+The Stop action already retries. If it still fails, reboot the Kindle and try again.
+From a root shell you can inspect with `lsof /tmp/alpine/` and `losetup -a`.
 
 ### Out of space
-- Delete large packages you don't need: `apk del <package>`
-- Clean package cache: `rm -rf /var/cache/apk/*`
-- Create a larger image using `create_minimal_alpine_image.sh` with increased `IMAGESIZE`
+
+- Remove packages inside Alpine: `apk del <package>`
+- Clean the package cache: `rm -rf /var/cache/apk/*`
+- Build a larger image with `create_minimal_alpine_image.sh` (increase `IMAGESIZE`).
 
 ### Loop device issues
-If you see "no available loop devices":
-```bash
-# Create additional loop devices
+
+```sh
 for i in 8 9 10 11 12; do
   mknod /dev/loop$i b 7 $i
   chmod 660 /dev/loop$i
 done
 ```
 
+## Architecture notes
+
+- **`alpine.ext4`** — Alpine root filesystem (2 GB default).
+- **`home.ext4`** — separate home partition, created on first Alpine start.
+- **`alpine.sh`** — mount, bind-mount, chroot and GUI bootstrap logic (shipped in the
+  rootfs image).
+- **`alpine.conf`** — legacy upstart unit; explicitly outdated and no longer installed
+  by the launcher.
+
+Tested on:
+
+- Kindle Paperwhite 6 (PW6)
+
+Should work on other touchscreen Kindles supported by Illusion with at least 2–3 GB
+free and 512 MB RAM.
+
 ## Development
 
-### Building Images with GitHub Actions
+### Local packaging
 
-This repository uses GitHub Actions to automatically build Alpine rootfs images. Workflow runs on:
-- Push to `pw6` branch
-- Pull requests to `pw6` branch
-- Manual workflow dispatch
+```sh
+./tools/package.sh
+```
 
-Built images are available as artifacts from the Actions tab.
+This creates `alpine_kindle-dev.zip` with the layout the in-app updater expects.
 
-## Contributing
+### Syntax checks
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+```sh
+# Shell scripts (POSIX sh / busybox ash)
+for f in illusion/alpine_kindle.sh illusion/alpine_kindle/bin/*.sh tools/*.sh; do
+  sh -n "$f" || exit 1
+done
+
+# JavaScript (ES5)
+node --check illusion/alpine_kindle/script.js
+
+# XML
+xmllint --noout illusion/alpine_kindle/config.xml
+```
+
+### Releases
+
+Push a `v*` tag. The `Create Release` workflow zips
+`illusion/alpine_kindle/` + `illusion/alpine_kindle.sh` and uploads it together with a
+SHA-256 file. The rootfs workflows are unchanged.
 
 ## Credits
 
 - Original project: [schuhumi/alpine_kindle](https://github.com/schuhumi/alpine_kindle)
 - Previous fork: [ohaiibuzzle/alpine_kindle](https://github.com/ohaiibuzzle/alpine_kindle)
 - This fork: [fluoroom/alpine_kindle](https://github.com/fluoroom/alpine_kindle)
+- Illusion by [Penguins184](https://github.com/penguins184/Penguins-Kindle-Wiki):
+  [Illusion Guide](https://github.com/penguins184/Penguins-Kindle-Wiki/blob/main/Illusion-Guide.md)
+  and [kindlemodshelf.me/illusion](https://kindlemodshelf.me/illusion)
+- Utild by [KindleModding](https://github.com/KindleModding/utild)
+- kterm by [bfabiszewski](https://github.com/bfabiszewski/kterm)
 
 ## License
 
-See [LICENSE](LICENSE) file for details.
+See [LICENSE](LICENSE). Third-party components are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
-## ⚠️ Final Reminder
-
-**Always ensure USBNetwork is enabled before connecting your Kindle to a computer while Alpine is mounted!** Check the USBNetwork status in KUAL before connecting.
+**Final reminder:** always make sure USBNetwork is enabled before connecting the Kindle
+to a computer while Alpine is mounted.

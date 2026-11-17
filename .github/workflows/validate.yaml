@@ -1,0 +1,38 @@
+name: Validate Illusion app
+
+on:
+  push:
+    branches:
+      - illusion
+      - pw6
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install XML validator
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils zip
+
+      - name: Check shell syntax
+        run: |
+          set -e
+          for f in illusion/alpine_kindle.sh illusion/alpine_kindle/bin/*.sh tools/*.sh; do
+            echo "sh -n $f"
+            sh -n "$f"
+          done
+
+      - name: Check JavaScript syntax
+        run: node --check illusion/alpine_kindle/script.js
+
+      - name: Validate config.xml and HTML
+        run: |
+          xmllint --noout illusion/alpine_kindle/config.xml
+          xmllint --html --noout illusion/alpine_kindle/index.html
+
+      - name: Build release layout
+        run: sh tools/package.sh /tmp/alpine_kindle-test.zip

@@ -8,20 +8,26 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Create release zip
         run: |
-          cd kual-extension
-          zip -r ../alpine_kindle-${{ github.ref_name }}.zip alpine_kindle/
-      
+          cd illusion
+          zip -r ../alpine_kindle-${{ github.ref_name }}.zip alpine_kindle/ alpine_kindle.sh
+          cd ..
+          sha256sum alpine_kindle-${{ github.ref_name }}.zip > alpine_kindle-${{ github.ref_name }}.zip.sha256
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: alpine_kindle-${{ github.ref_name }}.zip
+          files: |
+            alpine_kindle-${{ github.ref_name }}.zip
+            alpine_kindle-${{ github.ref_name }}.zip.sha256
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

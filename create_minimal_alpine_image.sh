@@ -1,4 +1,19 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
+#
+# Build a minimal Alpine Linux rootfs image for the Kindle.
+#
+# Populating the image means running ARM binaries on the x86 build host. That
+# works either with a qemu-arm-static binary (copied into the image) or with a
+# registered binfmt_misc handler (CI installs one with
+# docker/setup-qemu-action). Both paths are supported here.
+
+set -euo pipefail
+
+REPO="http://dl-cdn.alpinelinux.org/alpine"
+MOUNT_POINT="/mnt/alpine"
+IMAGE="./alpine.ext4"
+IMAGESIZE=2048 # Megabytes
+ARCH="${1:-}"
 
 # Ensure we are root
 if [ "$(id -u)" -ne 0 ]; then
@@ -6,26 +21,44 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-REPO="http://dl-cdn.alpinelinux.org/alpine"
-MOUNT_POINT="/mnt/alpine"
-IMAGE="./alpine.ext4"
-IMAGESIZE=2048 # Megabytes
-
-
-if [ -n "$1" ]; then
-  ARCH="$1"
-else
+if [ -z "$ARCH" ]; then
   echo "Usage: $0 <architecture>"
   echo "<architecture> is any architecture that Alpine Linux supports"
   exit 1
 fi
 
+# Prefer the host binary when it exists (works when binfmt is unavailable),
+# otherwise the chroot below relies on binfmt_misc emulation.
+QEMU_STATIC=""
+if command -v qemu-arm-static >/dev/null 2>&1; then
+  QEMU_STATIC="$(command -v qemu-arm-static)"
+  echo "Using host $QEMU_STATIC for the chroot."
+else
+  echo "No qemu-arm-static found; expecting a binfmt_misc handler for ARM."
+fi
+
+cleanup() {
+  if mountpoint -q "$MOUNT_POINT"; then
+    sync || true
+    umount "$MOUNT_POINT" || true
+  fi
+  rmdir "$MOUNT_POINT" 2>/dev/null || true
+}
+trap cleanup EXIT
+
 # Grab the prebuilt minirootfs
-wget "$REPO/edge/releases/$ARCH/latest-releases.yaml"
-MINIROOTFS_FILE=$(grep "file: alpine-minirootfs-.*-$ARCH.tar.gz" latest-releases.yaml | awk '{print $2}')
-wget "$REPO/edge/releases/$ARCH/$MINIROOTFS_FILE" -O minirootfs.tar.gz
+echo "Fetching Alpine edge release metadata for $ARCH..."
+wget -q "$REPO/edge/releases/$ARCH/latest-releases.yaml" -O latest-releases.yaml
+MINIROOTFS_FILE=$(grep "file: alpine-minirootfs-.*-$ARCH.tar.gz" latest-releases.yaml | awk '{print $2}' | head -n1)
+if [ -z "$MINIROOTFS_FILE" ]; then
+  echo "Could not find a minirootfs for architecture '$ARCH'" 1>&2
+  exit 1
+fi
+echo "Downloading $MINIROOTFS_FILE..."
+wget -q "$REPO/edge/releases/$ARCH/$MINIROOTFS_FILE" -O minirootfs.tar.gz
 
 # Prepare the disk image
+rm -f "$IMAGE"
 dd if=/dev/zero of="$IMAGE" bs=1M count="$IMAGESIZE"
 mkfs.ext4 -F "$IMAGE"
 tune2fs -i 0 -c 0 -O ^has_journal "$IMAGE"
@@ -35,15 +68,15 @@ mkdir -p "$MOUNT_POINT"
 mount -o loop "$IMAGE" "$MOUNT_POINT"
 
 # Extract the minirootfs
-tar -xzvf minirootfs.tar.gz -C "$MOUNT_POINT"
+tar -xzf minirootfs.tar.gz -C "$MOUNT_POINT"
 
 # Preconfig the image
-echo "kindle" > "$MOUNT_POINT/etc/hostname"
-echo "nameserver 1.1.1.1" > "$MOUNT_POINT/etc/resolv.conf"
-mkdir ${MOUNT_POINT}/run/dbus
+printf 'kindle\n' > "$MOUNT_POINT/etc/hostname"
+printf 'nameserver 1.1.1.1\n' > "$MOUNT_POINT/etc/resolv.conf"
+mkdir -p "$MOUNT_POINT/run/dbus"
 echo "Preconfig done."
 
-#Copy the GUI installers
+# Copy the GUI installers
 cp ./addons/base_gui_packages.sh "$MOUNT_POINT/usr/local/bin/base_gui_packages.sh"
 chmod +x "$MOUNT_POINT/usr/local/bin/base_gui_packages.sh"
 echo "Copied base GUI packages list to image."
@@ -55,16 +88,21 @@ cp ./addons/gui_xfce.sh "$MOUNT_POINT/usr/local/bin/gui_xfce"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_xfce"
 echo "Copied XFCE gui script to image."
 
-cp  ./addons/gui_installer.sh "$MOUNT_POINT/usr/local/bin/gui_installer"
+cp ./addons/gui_installer.sh "$MOUNT_POINT/usr/local/bin/gui_installer"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_installer"
 echo "Copied GUI installer script to image."
 
-# Copy qemu-[arch] binaries
-  cp $(which qemu-arm-static) "$MOUNT_POINT/usr/bin/"
+# Make ARM binaries runnable inside the chroot
+if [ -n "$QEMU_STATIC" ]; then
+  cp "$QEMU_STATIC" "$MOUNT_POINT/usr/bin/qemu-arm-static"
   echo "Copied qemu-arm-static to image."
-
-
-
+else
+  if ! chroot "$MOUNT_POINT" /bin/sh -c true; then
+    echo "ARM emulation is not available: install qemu-arm-static or register a binfmt_misc handler." 1>&2
+    exit 1
+  fi
+  echo "Verified binfmt_misc ARM emulation inside the chroot."
+fi
 
 # check if the customize_image.sh exists
 if [ -f "./customize_image.sh" ]; then
@@ -75,17 +113,26 @@ if [ -f "./customize_image.sh" ]; then
 
   # Run the customize script
   echo "Starting customization inside chroot..."
-  chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /root/customize_image.sh
+  if [ -n "$QEMU_STATIC" ]; then
+    chroot "$MOUNT_POINT" /usr/bin/qemu-arm-static /bin/sh /root/customize_image.sh
+  else
+    chroot "$MOUNT_POINT" /bin/sh /root/customize_image.sh
+  fi
   echo "Customization done."
 
-  rm "$MOUNT_POINT/root/customize_image.sh"
+  rm -f "$MOUNT_POINT/root/customize_image.sh"
   echo "Removed customize_image.sh from image."
-  rm "$MOUNT_POINT/usr/bin/qemu-arm-static"
-  echo "Removed qemu-arm-static from image."
+  if [ -n "$QEMU_STATIC" ]; then
+    rm -f "$MOUNT_POINT/usr/bin/qemu-arm-static"
+    echo "Removed qemu-arm-static from image."
+  fi
 fi
-
 
 # Unmount the image
 sync
 umount "$MOUNT_POINT"
-rm -rf "$MOUNT_POINT"
+rmdir "$MOUNT_POINT"
+trap - EXIT
+
+rm -f latest-releases.yaml minirootfs.tar.gz
+echo "Image written to $IMAGE"

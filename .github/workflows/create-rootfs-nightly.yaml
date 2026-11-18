@@ -16,9 +16,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      # ubuntu-latest no longer ships qemu-user-static (26.04 only has the
+      # binfmt registration package), so install static ARM emulation through
+      # binfmt_misc. create_minimal_alpine_image.sh detects this setup.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm
+
       - name: Create rootfs
         run: |
-          DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y qemu-user-static
           echo "Creating rootfs for architecture: ${{ matrix.architecture }}"
           sudo ./create_minimal_alpine_image.sh ${{ matrix.architecture }}
           echo "Rootfs created for architecture: ${{ matrix.architecture }}"

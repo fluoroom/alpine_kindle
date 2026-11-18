@@ -88,6 +88,13 @@ cp ./addons/gui_xfce.sh "$MOUNT_POINT/usr/local/bin/gui_xfce"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_xfce"
 echo "Copied XFCE gui script to image."
 
+cp ./addons/gui_install_fluxbox.sh "$MOUNT_POINT/usr/local/bin/gui_install_fluxbox"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_install_fluxbox"
+echo "Copied Fluxbox installer to image."
+cp ./addons/gui_fluxbox.sh "$MOUNT_POINT/usr/local/bin/gui_fluxbox"
+chmod +x "$MOUNT_POINT/usr/local/bin/gui_fluxbox"
+echo "Copied Fluxbox gui script to image."
+
 cp ./addons/gui_installer.sh "$MOUNT_POINT/usr/local/bin/gui_installer"
 chmod +x "$MOUNT_POINT/usr/local/bin/gui_installer"
 echo "Copied GUI installer script to image."

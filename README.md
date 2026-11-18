@@ -4,7 +4,7 @@
 
 This fork provides utilities to run [Alpine Linux](https://alpinelinux.org/) on the
 Kindle Paperwhite 6 and other compatible Kindles, with a separate home partition,
-improved mounting logic and an XFCE desktop option.
+improved mounting logic plus XFCE and Fluxbox desktop options.
 
 This branch replaces the old **KUAL extension** with a modern
 **[Illusion](https://kindlemodshelf.me/illusion)** app: a real Mesquite application
@@ -44,9 +44,9 @@ Check the USBNetwork status before connecting a cable while Alpine is running.
 | Shortcut in `/mnt/us/documents` | Scriptlet in `/mnt/us/documents` that registers the Mesquite app |
 | Name "Alpine" | "alpine installer" → "alpine" scriptlet, app named "Alpine Manager" |
 
-kterm is still required for the interactive Alpine shell, the XFCE session and the GUI
-installer. If kterm is missing, the app can install it through **KPM** (`kpm -y install
-kterm`). The launcher itself no longer needs KUAL.
+kterm is still required for the interactive Alpine shell, the XFCE/Fluxbox
+sessions and the GUI installer. If kterm is missing, the app can install it through
+**KPM** (`kpm -y install kterm`). The launcher itself no longer needs KUAL.
 
 ## Requirements
 
@@ -105,8 +105,13 @@ name, refresh the Library or reboot so it re-indexes the scriptlet.
    it goes. Tick **Install fish as the default shell** first if you want fish; the
    deploy then continues with the fish install.
 2. Tap **Alpine shell** for a terminal inside Alpine.
-3. Optional: tap **GUI installer**, choose XFCE (`x`) and wait for `apk` to finish.
-4. Tap **XFCE desktop** to start the graphical session.
+3. Optional: tap **GUI installer** and choose XFCE (`x`) or Fluxbox (`f`); wait for
+   `apk` to finish.
+4. Tap **XFCE desktop** or **Fluxbox desktop** to start the graphical session.
+
+The desktop installer scripts are shipped inside the rootfs image. If you are
+upgrading the app from an older rootfs, redeploy the image (delete the Alpine root
+first; `home.ext4` is kept) to get the Fluxbox addon scripts.
 
 Default credentials:
 
@@ -122,7 +127,8 @@ Default credentials:
 | **Install fish as the default shell** | Checkbox: after a successful deploy, install fish with `apk` and set it as root/alpine's shell. |
 | **Alpine shell** | Opens kterm and drops into Alpine. |
 | **XFCE desktop** | Opens kterm, starts Xephyr and the XFCE session. |
-| **GUI installer** | Opens kterm and runs the interactive desktop installer. |
+| **Fluxbox desktop** | Opens kterm, starts Xephyr and the lightweight Fluxbox session. |
+| **GUI installer** | Opens kterm and runs the interactive desktop installer (XFCE or Fluxbox). |
 | **Install kterm** | Shows when kterm is missing; runs `kpm -y install kterm`. |
 | **Install fish shell** | Mounts the stopped image, installs fish and sets the default shell. |
 | **Stop Alpine** | Unmounts everything and detaches loop devices. |
@@ -214,7 +220,7 @@ Library again. The scriptlet downloads/restarts it. The pinned source is the Kin
 repository; if that is unavailable, place a compatible Utild binary at
 `/mnt/us/alpine/utild/utild` (or `/var/local/kmc/utild`, `UtildHF`/`UtildSF`) manually.
 
-### Shell/XFCE buttons are disabled
+### Shell/desktop buttons are disabled
 
 kterm is missing or Alpine is not installed. Tap **Install kterm** if KPM is available
 (the app runs `kpm -y install kterm`), or install kterm manually from

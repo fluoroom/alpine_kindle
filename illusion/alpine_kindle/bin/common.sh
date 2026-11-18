@@ -3,7 +3,7 @@
 # This file is sourced by the launcher scripts; do not run it directly.
 
 APP_ID="com.fluoroom.alpinekindle"
-APP_VERSION="2.1.0"
+APP_VERSION="2.2.0"
 
 # Overridable so the scripts can be exercised off-device.
 APP_DIR="${ALPINE_APP_DIR:-/mnt/us/documents/alpine_kindle}"

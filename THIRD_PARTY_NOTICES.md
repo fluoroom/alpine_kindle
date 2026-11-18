@@ -44,7 +44,7 @@ repository is an independent implementation for Alpine Linux.
 - License: GPL-3.0 (see upstream)
 - How it is used here: kterm is **not** bundled. It is detected at
   `/mnt/us/extensions/kterm/bin/kterm` and only used for interactive sessions
-  (Alpine shell, XFCE, GUI installer).
+  (Alpine shell, XFCE/Fluxbox sessions, GUI installer).
 
 ## KPM (Kindle Package Manager)
 

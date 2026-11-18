@@ -162,8 +162,13 @@ case "$1" in
         GUI_TYPE="xfce"
         echo "GUI mode enabled - will start XFCE after entering Alpine"
         ;;
+    --fluxbox)
+        AUTO_GUI=true
+        GUI_TYPE="fluxbox"
+        echo "GUI mode enabled - will start Fluxbox after entering Alpine"
+		;;
 	--gui-installer)
-		AUTO_GUI=true
+        AUTO_GUI=true
 		GUI_TYPE="installer"
 		echo "Entering GUI Installer"
 		;;

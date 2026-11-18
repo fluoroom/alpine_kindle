@@ -1,7 +1,7 @@
 #!/bin/sh
 # Opens kterm and runs one of the interactive session scripts inside it.
 #
-# Usage: launch_kterm.sh start.sh|xfce.sh|gui_installer.sh
+# Usage: launch_kterm.sh start.sh|xfce.sh|fluxbox.sh|gui_installer.sh
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/common.sh"
@@ -9,7 +9,7 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 SESSION="$1"
 
 case "$SESSION" in
-    start.sh|xfce.sh|gui_installer.sh) ;;
+    start.sh|xfce.sh|fluxbox.sh|gui_installer.sh) ;;
     *)
         log "ERROR: Unknown terminal session: $SESSION"
         status_set message "Unknown terminal session"

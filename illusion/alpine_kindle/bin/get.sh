@@ -68,7 +68,9 @@ esac
 if [ "$NIGHTLY" = "1" ]; then
     URL="https://nightly.link/fluoroom/alpine_kindle/workflows/create-rootfs-nightly.yaml/pw6/alpine-rootfs-nightly-${IMAGE_ARCH}.zip"
 else
-    URL="https://nightly.link/fluoroom/alpine_kindle/workflows/create-rootfs.yaml/pw6/alpine-rootfs-${IMAGE_ARCH}.zip"
+    # Release rootfs builds run on version tags, so nightly.link must be
+    # queried by tag (the branch name is not the run's head_branch).
+    URL="https://nightly.link/fluoroom/alpine_kindle/workflows/create-rootfs.yaml/v${APP_VERSION}/alpine-rootfs-${IMAGE_ARCH}.zip"
 fi
 
 cd "$DATA_DIR" || fail_action "Could not enter $DATA_DIR"

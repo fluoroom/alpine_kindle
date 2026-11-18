@@ -5,7 +5,7 @@
  */
 
 var APP_ID = "com.fluoroom.alpinekindle";
-var APP_VERSION = "2.1.0";
+var APP_VERSION = "2.2.0";
 var APP_DIR = "/mnt/us/documents/alpine_kindle";
 var STATUS_URL = "file:///mnt/us/alpine/illusion/status.txt";
 var LOG_URL = "file:///mnt/us/alpine/illusion/action.log";
@@ -451,6 +451,7 @@ function render() {
     setDisabled("btn-deploy-nightly", !canRun || state.alpine);
     setDisabled("btn-shell", !canRun || !state.alpine || !state.kterm);
     setDisabled("btn-xfce", !canRun || !state.alpine || !state.kterm);
+    setDisabled("btn-fluxbox", !canRun || !state.alpine || !state.kterm);
     setDisabled("btn-installer", !canRun || !state.alpine || !state.kterm);
     setDisabled("btn-stop", !canRun);
     setDisabled("btn-delete-root", !canRun || !state.alpine);
@@ -609,6 +610,10 @@ function wireEvents() {
 
     byId("btn-xfce").onclick = function () {
         launchSession("launch_kterm.sh xfce.sh", "Opening XFCE desktop\u2026");
+    };
+
+    byId("btn-fluxbox").onclick = function () {
+        launchSession("launch_kterm.sh fluxbox.sh", "Opening Fluxbox desktop\u2026");
     };
 
     byId("btn-installer").onclick = function () {

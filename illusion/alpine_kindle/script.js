@@ -5,7 +5,7 @@
  */
 
 var APP_ID = "com.fluoroom.alpinekindle";
-var APP_VERSION = "2.2.0";
+var APP_VERSION = "2.2.1";
 var APP_DIR = "/mnt/us/documents/alpine_kindle";
 var STATUS_URL = "file:///mnt/us/alpine/illusion/status.txt";
 var LOG_URL = "file:///mnt/us/alpine/illusion/action.log";

@@ -352,31 +352,71 @@ else
 fi
 
 timezone_selection() {
+	local ROOT="${1:-/tmp/alpine}"
+	local ZONEINFO="$ROOT/usr/share/zoneinfo"
+	local ZONES tz tz_name selection
+
 	# Check if localtime exists and is a valid symlink
-	if [ -e /tmp/alpine/etc/localtime ] || [ -L /tmp/alpine/etc/localtime ]; then
+	if [ -e "$ROOT/etc/localtime" ] || [ -L "$ROOT/etc/localtime" ]; then
 		echo "Timezone already configured, skipping selection."
-		return
+		return 0
 	fi
-	
+
+	# The minimal image does not ship tzdata, so there is no zoneinfo to list.
+	# Skip instead of showing an empty menu and looping forever.
+	if [ ! -d "$ZONEINFO/Etc" ]; then
+		echo "Timezone data (tzdata) is not installed in this Alpine image."
+		echo "Skipping timezone selection; Alpine will use UTC by default."
+		echo "Run 'apk add tzdata' inside Alpine to enable timezone selection."
+		return 0
+	fi
+
+	ZONES="$(LC_ALL=C ls -1 "$ZONEINFO/Etc" 2>/dev/null)"
+	if [ -z "$ZONES" ]; then
+		echo "No timezones found in $ZONEINFO/Etc; skipping selection."
+		return 0
+	fi
+
 	echo "Select your timezone:"
 	echo "Available timezones:"
-	ls /tmp/alpine/usr/share/zoneinfo/Etc/** | nl
-	printf "Enter the number corresponding to your timezone: "
-	read -r selection
-	
-	# Get the full timezone path from the selection number
-	tz_full=$(ls /tmp/alpine/usr/share/zoneinfo/Etc/** | sed -n "${selection}p")
-	
-	# Extract only the relative path from zoneinfo (e.g., "Etc/UTC")
-	tz=$(echo "$tz_full" | sed 's|.*/zoneinfo/||')
-	
-	if [ -n "$tz" ]; then
-		echo "You selected timezone: $tz"
-		read -p "Press any key to continue..."
-		chroot /tmp/alpine /bin/sh -c "rm -f /etc/localtime && ln -s /usr/share/zoneinfo/$tz /etc/localtime"
+	printf '%s\n' "$ZONES" | sed 's|^|Etc/|' | nl
+
+	while :; do
+		printf "Enter the number corresponding to your timezone (Enter to skip): "
+		if ! read -r selection; then
+			echo ""
+			return 0
+		fi
+
+		case "$selection" in
+			"")
+				echo "Skipping timezone selection."
+				return 0
+				;;
+			*[!0-9]*)
+				echo "Please enter a number from the list."
+				continue
+				;;
+		esac
+
+		tz_name="$(printf '%s\n' "$ZONES" | sed -n "${selection}p")"
+		if [ -z "$tz_name" ]; then
+			echo "Invalid selection, please try again."
+			continue
+		fi
+
+		tz="Etc/$tz_name"
+		break
+	done
+
+	echo "You selected timezone: $tz"
+	printf "Press Enter to continue..."
+	read -r _
+
+	if chroot "$ROOT" /bin/sh -c "rm -f /etc/localtime && ln -s /usr/share/zoneinfo/$tz /etc/localtime"; then
+		echo "Timezone set to $tz."
 	else
-		echo "Invalid selection, please try again."
-		timezone_selection
+		echo "ERROR: Failed to set the timezone."
 	fi
 }
 

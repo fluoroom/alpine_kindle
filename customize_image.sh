@@ -4,5 +4,6 @@
 # so you can install extra stuff easily here.
 
 # busybox already ships `top`, so there is no package with that name.
-apk add --no-cache vim git curl htop tmux fish sudo bash nano fastfetch
+# tzdata provides /usr/share/zoneinfo for alpine.sh's timezone selection.
+apk add --no-cache vim git curl htop tmux fish sudo bash nano fastfetch tzdata
 echo "✓ Successfully installed base packages"

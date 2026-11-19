@@ -238,6 +238,12 @@ retry from **Install fish shell**.
 The Stop action already retries. If it still fails, reboot the Kindle and try again.
 From a root shell you can inspect with `lsof /tmp/alpine/` and `losetup -a`.
 
+### Timezone selection is skipped
+
+New rootfs images include `tzdata`. If the Alpine shell says "Timezone data (tzdata)
+is not installed", the image was built before this was added. Run `apk add tzdata`
+inside Alpine, exit the shell, and start it again to pick a timezone.
+
 ### Out of space
 
 - Remove packages inside Alpine: `apk del <package>`
